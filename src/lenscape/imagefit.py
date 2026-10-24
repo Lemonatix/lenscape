@@ -110,16 +110,20 @@ class LensImageModel:
         self.ss = supersample
         ny, nx = shape
         fine = pixscale / supersample
-        xs = (np.arange(nx * supersample) - (nx * supersample - 1) / 2) * fine
-        ys = (np.arange(ny * supersample) - (ny * supersample - 1) / 2) * fine
-        self.X, self.Y = np.meshgrid(xs, ys)
         self.psf = gaussian_psf(psf_fwhm, fine)
+        # Rand in ganzen Bildpixeln, damit die Faltung auch Licht von außerhalb erfasst
+        self.pad = int(np.ceil((self.psf.shape[0] // 2) / supersample)) + 1
+        NY, NX = ny + 2 * self.pad, nx + 2 * self.pad
+        xs = (np.arange(NX * supersample) - (NX * supersample - 1) / 2) * fine
+        ys = (np.arange(NY * supersample) - (NY * supersample - 1) / 2) * fine
+        self.X, self.Y = np.meshgrid(xs, ys)
 
     # ---------------------------------------------------------------- Bausteine
     def _bin(self, img):
-        s = self.ss
+        s, p = self.ss, self.pad
         ny, nx = self.shape
-        return img.reshape(ny, s, nx, s).mean(axis=(1, 3))
+        NY, NX = ny + 2 * p, nx + 2 * p
+        return img.reshape(NY, s, NX, s).mean(axis=(1, 3))[p:p + ny, p:p + nx]
 
     def _convolve(self, img):
         return self._bin(fftconvolve(img, self.psf, mode="same"))
@@ -226,12 +230,21 @@ def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E
 
 
 def estimate_noise(data: np.ndarray, exptime: float | None = None, border: int = 10) -> np.ndarray:
-    """σ pro Pixel: Hintergrundrauschen (robust aus dem Rand) plus Poisson-Anteil (bei e⁻/s-Bildern)."""
-    edge = np.concatenate([data[:border].ravel(), data[-border:].ravel(),
-                           data[:, :border].ravel(), data[:, -border:].ravel()])
-    med = np.median(edge)
-    sig_bkg = 1.4826 * np.median(np.abs(edge - med))
+    """σ pro Pixel: Hintergrundrauschen plus Poisson-Anteil (bei e⁻/s-Bildern).
+
+    Das Hintergrundrauschen wird robust (MAD) aus dem Bildrand geschätzt, nachdem
+    ein glatter Verlauf (Medianfilter, 9 px) abgezogen wurde -- sonst würden
+    Ausläufer der Galaxie das Rauschen überschätzen.
+    """
+    from scipy.ndimage import median_filter
+
+    hp = data - median_filter(data, size=9, mode="reflect")
+    edge = np.concatenate([hp[:border].ravel(), hp[-border:].ravel(),
+                           hp[:, :border].ravel(), hp[:, -border:].ravel()])
+    # Varianz des Hochpasses ≈ σ² (1 + 1/81) für weißes Rauschen
+    sig_bkg = 1.4826 * np.median(np.abs(edge - np.median(edge))) / np.sqrt(1 + 1 / 81)
     var = np.full(data.shape, sig_bkg**2)
     if exptime and exptime > 0:
-        var += np.clip(data - med, 0, None) / exptime
+        base = np.median(data[:border])
+        var += np.clip(data - base, 0, None) / exptime
     return np.sqrt(var)
