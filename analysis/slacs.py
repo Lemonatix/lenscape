@@ -1,9 +1,10 @@
 """SLACS-Auswertung: Massen, Dunkle Materie und Kosmologie aus 63 echten Linsen.
 
-    python analysis/slacs.py
+    python analysis/slacs.py          # rechnen + Datentabellen schreiben
+    python figures/build.py           # TikZ/pgfplots-Abbildungen bauen (PDF + SVG)
 
-Schreibt Abbildungen nach figures/slacs/ und eine Zusammenfassung nach
-analysis/slacs_results.md.
+Die Rechnung schreibt nur Daten (figures/slacs/data/*.dat). Wie sie aussehen,
+legen die pgfplots-Dateien in figures/slacs/*.tex fest.
 """
 
 from __future__ import annotations
@@ -11,10 +12,7 @@ from __future__ import annotations
 import warnings
 from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+import contourpy
 import numpy as np
 
 from lenscape.catalogs import SLACS_REF_COSMO, load_slacs
@@ -24,78 +22,71 @@ from lenscape.strong_lenses import einstein_quantities, summarize
 
 warnings.filterwarnings("ignore")
 ROOT = Path(__file__).resolve().parents[1]
-FIG = ROOT / "figures" / "slacs"
-FIG.mkdir(parents=True, exist_ok=True)
+DATA = ROOT / "figures" / "slacs" / "data"
+DATA.mkdir(parents=True, exist_ok=True)
 
-plt.rcParams.update({"figure.dpi": 130, "font.size": 9, "axes.grid": True, "grid.alpha": 0.25})
-BLUE, ORANGE, GREY = "#2a6fdb", "#e8833a", "#777777"
-
-
-def fig_fsie(t):
-    good = t["good_sigma"]
-    f = np.asarray(t["f_SIE"][good])
-    fig, ax = plt.subplots(figsize=(5, 3.2))
-    ax.hist(f, bins=np.arange(0.65, 1.3, 0.04), color=BLUE, alpha=0.85)
-    ax.axvline(1, color="k", lw=1)
-    ax.axvline(f.mean(), color=ORANGE, ls="--", label=f"Mittel {f.mean():.3f} ± {f.std(ddof=1)/np.sqrt(len(f)):.3f}")
-    ax.set_xlabel(r"$f_{SIE} = \sigma_{SDSS} / \sigma_{SIE}$")
-    ax.set_ylabel("Anzahl Linsen")
-    ax.set_title("Sterne vs. Linse: Ist die Gesamtmasse isotherm?")
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(FIG / "f_sie.png")
-    plt.close(fig)
+DCHI2_LEVELS = {"68": 2.30, "95": 6.17}  # zwei Parameter
 
 
-def fig_fdm(t):
-    fig, ax = plt.subplots(figsize=(5.4, 3.6))
+def write_table(name: str, header: list[str], *cols, fmt="%.6g") -> None:
+    arr = np.column_stack([np.asarray(c, dtype=float) for c in cols])
+    np.savetxt(DATA / name, arr, header=" ".join(header), comments="", fmt=fmt)
+
+
+def write_scalars(name: str, values: dict[str, float]) -> None:
+    """Einzelwerte als pgf-Makros, z. B. \\def\\fsiemean{0.952}."""
+    lines = [f"\\def\\{k}{{{v:.4g}}}" for k, v in values.items()]
+    (DATA / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+# ----------------------------------------------------------------- Exporte
+def export_fsie(t) -> dict:
+    f = np.asarray(t["f_SIE"][t["good_sigma"]])
+    edges = np.arange(0.66, 1.30, 0.04)
+    counts, _ = np.histogram(f, bins=edges)
+    # pgfplots "ybar interval": letzte Zeile wiederholt den Zählwert am rechten Rand
+    write_table("f_sie_hist.dat", ["left", "count"], edges, np.append(counts, counts[-1]))
+    return {"fsiemean": f.mean(), "fsieerr": f.std(ddof=1) / np.sqrt(len(f)), "fsiestd": f.std(ddof=1),
+            "fsien": len(f), "fsieymax": counts.max() + 6}
+
+
+def export_fdm(t) -> None:
     x = np.asarray(t["R_E_over_R_e"])
-    for imf, col, lab in [("chab", BLUE, "Chabrier-IMF"), ("salp", ORANGE, "Salpeter-IMF")]:
+    for imf in ("chab", "salp"):
         y = np.asarray(t[f"fDM_{imf}"])
         e = np.asarray(t[f"e_fstar_{imf}"])
-        m = np.isfinite(y)
-        ax.errorbar(x[m], y[m], yerr=e[m], fmt="o", ms=3.5, color=col, alpha=0.8, elinewidth=0.7, label=lab)
-    ax.axhline(0, color="k", lw=0.8)
-    ax.set_xlabel(r"$R_E / R_e$ (Einsteinradius / Effektivradius)")
-    ax.set_ylabel(r"$f_{DM}(<R_E)$")
-    ax.set_title("Anteil Dunkler Materie innerhalb des Einsteinradius")
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(FIG / "f_dm.png")
-    plt.close(fig)
+        m = np.isfinite(y) & np.isfinite(e)
+        write_table(f"f_dm_{imf}.dat", ["x", "y", "ey"], x[m], y[m], e[m])
 
 
-def fig_mass_vs_cosmology(base):
+def export_mass_vs_cosmology(t) -> dict:
     tab = load_slacs()
-    ws = np.linspace(-2.0, -0.4, 17)
-    oms = np.linspace(0.1, 0.6, 11)
-    ref = np.asarray(base["M_E"])
+    ref = np.asarray(t["M_E"])
+    ws = np.linspace(-2.0, -0.4, 33)
+    oms = np.linspace(0.1, 0.6, 26)
     mw = [np.median(einstein_quantities(tab, make_cosmology(70, 0.3, None, w))["M_E"] / ref) for w in ws]
     mo = [np.median(einstein_quantities(tab, make_cosmology(70, om, None, -1.0))["M_E"] / ref) for om in oms]
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(8, 3.2), sharey=True)
-    a1.plot(ws, mw, "o-", color=BLUE, ms=3)
-    a1.set_xlabel("w (Dunkle Energie)")
-    a1.set_ylabel(r"Median $M_E / M_E^{\rm ref}$")
-    a2.plot(oms, mo, "o-", color=ORANGE, ms=3)
-    a2.set_xlabel(r"$\Omega_m$")
-    for a in (a1, a2):
-        a.axhline(1, color="k", lw=0.8)
-    fig.suptitle("Wie stark hängen die gemessenen Galaxienmassen von der Kosmologie ab? (H₀ = 70)")
-    fig.tight_layout()
-    fig.savefig(FIG / "mass_vs_cosmology.png")
-    plt.close(fig)
-    return float(np.ptp(mw)), float(np.ptp(mo))
+    write_table("mass_vs_w.dat", ["w", "ratio"], ws, mw)
+    write_table("mass_vs_om.dat", ["Om", "ratio"], oms, mo)
+    return {"massspanw": 100 * np.ptp(mw), "massspanom": 100 * np.ptp(mo)}
 
 
-def contours(ax, res, color, label):
+def export_contours(res, tag: str) -> list[str]:
+    """Gefüllte Δχ²-Bereiche als Polygone; Rückgabe: Liste der Dateinamen je Niveau."""
     d = res.delta_chi2()
-    ax.contourf(res.Om, res.w, d, levels=[0, 2.30, 6.17], colors=[color, color], alpha=[0.55, 0.25])
-    ax.contour(res.Om, res.w, d, levels=[2.30, 6.17], colors=[color], linewidths=0.8)
-    ax.plot([], [], color=color, lw=6, alpha=0.5, label=label)
+    gen = contourpy.contour_generator(res.Om, res.w, d, fill_type=contourpy.FillType.OuterOffset)
+    files = []
+    for lvl, val in DCHI2_LEVELS.items():
+        polys, _ = gen.filled(-1.0, val)
+        for k, poly in enumerate(polys):
+            name = f"cosmo_{tag}_{lvl}_{k}.dat"
+            write_table(name, ["Om", "w"], poly[:, 0], poly[:, 1])
+            files.append((lvl, name))
+    return files
 
 
 def forecast(t, n_lenses, seed=1):
-    """Synthetische Stichprobe wie SLACS (gleiche z- und Streuungsverteilung), Wahrheit = Planck-ΛCDM."""
+    """Synthetische Stichprobe wie SLACS (gleiche z-Verteilung), Wahrheit = Planck-ΛCDM."""
     rng = np.random.default_rng(seed)
     idx = rng.integers(0, len(t), n_lenses)
     z_d = np.asarray(t["z_d"])[idx]
@@ -109,40 +100,37 @@ def forecast(t, n_lenses, seed=1):
                          sigma_int=np.linspace(0.1, 0.2, 11))
 
 
-def fig_cosmography(t):
+def export_cosmography(t) -> tuple[dict, object]:
     g = t[t["good_sigma"]]
     res = fit_flat_wcdm(g["theta_E"], g["sigma"], g["e_sigma"], g["z_d"], g["z_s"], e_theta_frac=0.02)
     fc = forecast(g, 2000)
+    files = {"slacs": export_contours(res, "slacs"), "forecast": export_contours(fc, "forecast")}
 
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(9, 3.8), sharey=True)
-    contours(a1, res, BLUE, f"SLACS ({len(g)} Linsen)")
-    contours(a2, fc, ORANGE, "Prognose: 2000 Linsen")
-    for a in (a1, a2):
-        a.plot(PLANCK18_OM0, -1, "*", color="k", ms=10, label="Planck ΛCDM")
-        a.set_xlabel(r"$\Omega_m$")
-        a.legend(loc="lower right", fontsize=8)
-    a1.set_ylabel("w")
-    a1.set_title("Echte Daten")
-    a2.set_title("Gleiches Verfahren, Euclid/LSST-Größenordnung")
-    fig.suptitle(r"Kosmographie aus $\theta_E$ und $\sigma$: 68 %/95 %-Bereiche (flaches wCDM)")
-    fig.tight_layout()
-    fig.savefig(FIG / "cosmography.png")
-    plt.close(fig)
+    # pgfplots-Befehle für die (je nach Daten unterschiedlich vielen) Polygone
+    for tag, lst in files.items():
+        cmds = [f"\\addplot[{tag}{lvl}, forget plot] table {{data/{name}}} -- cycle;" for lvl, name in
+                sorted(lst, key=lambda p: -int(p[0]))]  # 95 % zuerst, 68 % darüber
+        (DATA / f"cosmo_{tag}_regions.tex").write_text("\n".join(cmds) + "\n", encoding="utf-8")
 
     d = res.delta_chi2()
     j = np.argmin(np.abs(res.w + 1))
     i = np.argmin(np.abs(res.Om - PLANCK18_OM0))
-    return res, float(d[j, i])
+    scal = {"nlenses": len(g), "nforecast": 2000, "dchiplanck": d[j, i], "planckOm": PLANCK18_OM0}
+    return scal, res
 
 
 def main():
     tab = load_slacs()
     t = einstein_quantities(tab, make_cosmology(**SLACS_REF_COSMO))
     s = summarize(t)
-    fig_fsie(t)
-    fig_fdm(t)
-    span_w, span_om = fig_mass_vs_cosmology(t)
-    res, dchi2_planck = fig_cosmography(t)
+
+    scalars = {}
+    scalars |= export_fsie(t)
+    export_fdm(t)
+    scalars |= export_mass_vs_cosmology(t)
+    cs, res = export_cosmography(t)
+    scalars |= cs
+    write_scalars("scalars.tex", scalars)
     best = res.best
 
     m = np.isfinite(t["logM_E_auger"])
@@ -171,14 +159,21 @@ def main():
         "",
         f"- Bestfit (flaches wCDM): Ωₘ = {best['Om']:.2f}, w = {best['w']:.2f}, "
         f"f_E = {best['f_E']:.3f}, intrinsische Streuung {best['sigma_int']:.2f}",
-        f"- Planck-ΛCDM (Ωₘ = {PLANCK18_OM0}, w = −1) liegt bei Δχ² = {dchi2_planck:.2f}, also verträglich.",
-        f"- Variiert man w von −2 bis −0,4, ändern sich die Mediane der Massen um {100*span_w:.1f} %; "
-        f"für Ωₘ von 0,1 bis 0,6 um {100*span_om:.1f} %.",
+        f"- Planck-ΛCDM (Ωₘ = {PLANCK18_OM0}, w = −1) liegt bei Δχ² = {cs['dchiplanck']:.2f}, also verträglich.",
+        f"- Variiert man w von −2 bis −0,4, ändern sich die Mediane der Massen um {scalars['massspanw']:.1f} %; "
+        f"für Ωₘ von 0,1 bis 0,6 um {scalars['massspanom']:.1f} %.",
         "",
-        "![f_SIE](../figures/slacs/f_sie.png)",
-        "![f_DM](../figures/slacs/f_dm.png)",
-        "![Masse vs. Kosmologie](../figures/slacs/mass_vs_cosmology.png)",
-        "![Kosmographie](../figures/slacs/cosmography.png)",
+        "## Abbildungen",
+        "",
+        "Gebaut mit `python figures/build.py` (TikZ/pgfplots; PDF und SVG in `figures/slacs/`).",
+        "",
+        "![f_SIE](../figures/slacs/f_sie.svg)",
+        "",
+        "![f_DM](../figures/slacs/f_dm.svg)",
+        "",
+        "![Masse vs. Kosmologie](../figures/slacs/mass_vs_cosmology.svg)",
+        "",
+        "![Kosmographie](../figures/slacs/cosmography.svg)",
         "",
     ]
     (ROOT / "analysis" / "slacs_results.md").write_text("\n".join(lines), encoding="utf-8")
