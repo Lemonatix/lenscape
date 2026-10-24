@@ -31,6 +31,9 @@ def build(tex: Path) -> bool:
     if "{data/" in tex.read_text(encoding="utf-8") and not (folder / "data").exists():
         print(f"--  {tex.relative_to(ROOT)}  übersprungen (keine Daten; erst die Auswertung laufen lassen)")
         return True
+    # alte Hilfsdateien dieser Abbildung entfernen (abgebrochene Läufe verwirren latexmk sonst)
+    for old in (folder / "build").glob(tex.stem + ".*"):
+        old.unlink()
     cmd = ["latexmk", "-pdf", "-interaction=nonstopmode", "-halt-on-error", "-outdir=build", tex.name]
     if not shutil.which("latexmk"):
         cmd = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", "-output-directory=build", tex.name]
