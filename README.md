@@ -72,8 +72,15 @@ print(find_images(lens, 0.05, 0.03))                 # 4 Bilder: x, y, μ
 
 ```bash
 python scripts/fetch_cds.py     # nur nötig, falls data/ fehlt
-python analysis/slacs.py        # Abbildungen nach figures/slacs/, Ergebnisse nach analysis/slacs_results.md
+python analysis/slacs.py        # rechnen; Datentabellen nach figures/slacs/data/, Ergebnisse nach analysis/slacs_results.md
+python figures/build.py         # TikZ/pgfplots-Abbildungen bauen (PDF + SVG, braucht LaTeX mit pgfplots)
 ```
+
+Die Abbildungen sind reines TikZ/pgfplots (`figures/slacs/*.tex`, gemeinsamer Stil in
+`figures/lenscape-style.tex`). Die PDFs lassen sich direkt in LaTeX-Dokumente einbinden, die SVGs in README und
+Website. Python liefert nur die Daten, das Aussehen steckt komplett im TeX.
+
+![Kosmographie](figures/slacs/cosmography.svg)
 
 Was dabei herauskommt (Details in [`analysis/slacs_results.md`](analysis/slacs_results.md)):
 
