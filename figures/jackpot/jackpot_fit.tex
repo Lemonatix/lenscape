@@ -1,0 +1,44 @@
+\documentclass[border=4pt]{standalone}
+\input{../lenscape-style}
+\input{data/macros}
+\input{data/extent}
+
+\begin{document}
+\begin{tikzpicture}
+  \begin{groupplot}[
+      group style={group size=3 by 2, horizontal sep=0.35cm, vertical sep=1.75cm, y descriptions at=edge left},
+      lenscape,
+      width=5.2cm, height=5.2cm,
+      axis equal image,
+      grid=none, axis on top,
+      title style={font=\footnotesize\bfseries},
+      xlabel={$\Delta x$ [$''$]}, ylabel={$\Delta y$ [$''$]},
+    ]
+    % ---------------- obere Reihe: Bildebene
+    \nextgroupplot[title={HST F814W}, xmin=-\half, xmax=\half, ymin=-\half, ymax=\half]
+      \addplot graphics[xmin=-\half, xmax=\half, ymin=-\half, ymax=\half] {data/data.png};
+    \nextgroupplot[title={ohne Linsenlicht}, xmin=-\half, xmax=\half, ymin=-\half, ymax=\half]
+      \addplot graphics[xmin=-\half, xmax=\half, ymin=-\half, ymax=\half] {data/rings.png};
+      \draw[lsBlue!60, densely dashed, line width=0.5pt] (axis cs:\xl,\yl) circle[radius=1.43];
+      \draw[lsOrange!80, densely dashed, line width=0.5pt] (axis cs:\xl,\yl) circle[radius=2.07];
+    \nextgroupplot[title={Modell (2 Quellen)}, xmin=-\half, xmax=\half, ymin=-\half, ymax=\half]
+      \addplot graphics[xmin=-\half, xmax=\half, ymin=-\half, ymax=\half] {data/model.png};
+    % ---------------- untere Reihe: Residuum und Quellebenen
+    \nextgroupplot[title={Residuum ($\pm5\sigma$)}, xmin=-\half, xmax=\half, ymin=-\half, ymax=\half]
+      \addplot graphics[xmin=-\half, xmax=\half, ymin=-\half, ymax=\half] {data/resid.png};
+    \nextgroupplot[title={Quelle 1 ($z=\pgfmathprintnumber[fixed,precision=3]{\zsa}$)},
+                   xmin=\sax, xmax=\sbx, ymin=\say, ymax=\sby, ylabel={}]
+      \addplot graphics[xmin=\sax, xmax=\sbx, ymin=\say, ymax=\sby] {data/source1.png};
+    \nextgroupplot[title={Quelle 2 ($z=\pgfmathprintnumber[fixed,precision=3]{\zsb}$)},
+                   xmin=\tax, xmax=\tbx, ymin=\tay, ymax=\tby, ylabel={}]
+      \addplot graphics[xmin=\tax, xmax=\tbx, ymin=\tay, ymax=\tby] {data/source2.png};
+  \end{groupplot}
+  \node[font=\small\bfseries, text=lsInk, anchor=south] at ($(group c2r1.north)+(0,0.75cm)$)
+    {SDSS J0946$+$1006 (\glqq Jackpot\grqq): Linse bei $z=\pgfmathprintnumber[fixed,precision=3]{\zd}$ mit zwei Quellebenen};
+  \node[font=\scriptsize, text=lsInk, anchor=north] at ($(group c2r2.south)+(0,-0.95cm)$)
+    {Innerer Ring: $\theta_\mathrm{E} = \pgfmathprintnumber[fixed,precision=3,fixed zerofill]{\thetaEpix}''$,
+     $\chi^2_\mathrm{red} = \pgfmathprintnumber[fixed,precision=2,fixed zerofill]{\chipix}$ (Sérsic-Quelle: $\pgfmathprintnumber[fixed,precision=2,fixed zerofill]{\chipar}$)
+     \quad Äußerer Ring: $\eta = \pgfmathprintnumber[fixed,precision=2,fixed zerofill]{\etaiso}$,
+     $\chi^2_\mathrm{red} = \pgfmathprintnumber[fixed,precision=2,fixed zerofill]{\chiouter}$};
+\end{tikzpicture}
+\end{document}
