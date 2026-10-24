@@ -61,6 +61,7 @@ class MassMap(Lens):
     alpha_y_inf: np.ndarray | None = None
     ratio: float = 1.0                   # D_ds/D_s der gewünschten Quellrotverschiebung
     name: str = ""
+    wcs: object = None                   # astropy.wcs.WCS der Karte (optional)
 
     def __post_init__(self):
         self.kappa_inf = np.nan_to_num(np.asarray(self.kappa_inf, dtype=float))
@@ -89,7 +90,13 @@ class MassMap(Lens):
         if alpha_x_file and alpha_y_file:
             ax = np.asarray(fits.getdata(alpha_x_file), dtype=float)
             ay = np.asarray(fits.getdata(alpha_y_file), dtype=float)
-        return cls(kappa, pixscale, ax, ay, name=name)
+        return cls(kappa, pixscale, ax, ay, name=name, wcs=wcs)
+
+    def sky_to_offset(self, coord) -> tuple[float, float]:
+        """Himmelskoordinate -> (x, y) in arcsec im Koordinatensystem dieser Karte."""
+        i, j = self.wcs.world_to_pixel(coord)
+        ny, nx = self.kappa_inf.shape
+        return float((i - (nx - 1) / 2) * self.pixscale), float((j - (ny - 1) / 2) * self.pixscale)
 
     def at_source_redshift(self, geom: LensGeometry) -> "MassMap":
         """Gleiche Karte, skaliert auf die Quelle von ``geom`` (D_ds/D_s)."""
@@ -153,11 +160,14 @@ def enclosed_mass_profile(m: MassMap, z_d: float, cosmo, radii_kpc, center=(0.0,
     return np.interp(np.asarray(radii_kpc, float), R.ravel()[order], cum)
 
 
-def effective_einstein_radius(m: MassMap, step: int = 1) -> float:
+def effective_einstein_radius(m: MassMap, step: int = 1, center: tuple[float, float] | None = None,
+                              max_dist: float = 40.0) -> float:
     """θ_E,eff = sqrt(A/π) mit A = Fläche innerhalb der tangentialen kritischen Kurve.
 
     Gesucht wird die größte geschlossene Kontur det A = 0; das ist bei Haufen die
     äußere (tangentiale) kritische Kurve. Gängiges Maß für die Linsenstärke eines Haufens.
+    Mit ``center`` zählen nur Kurven, deren Schwerpunkt höchstens ``max_dist`` (arcsec)
+    davon entfernt liegt -- große Karten enthalten sonst Kurven um Unterklumpen am Rand.
     """
     import contourpy
 
@@ -170,6 +180,8 @@ def effective_einstein_radius(m: MassMap, step: int = 1) -> float:
         if len(line) < 10 or not np.allclose(line[0], line[-1], atol=2 * m.pixscale * step):
             continue  # nur geschlossene Kurven
         x, y = line[:, 0], line[:, 1]
+        if center is not None and np.hypot(x.mean() - center[0], y.mean() - center[1]) > max_dist:
+            continue
         area = 0.5 * abs(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
         best = max(best, area)
     return float(np.sqrt(best / np.pi))
