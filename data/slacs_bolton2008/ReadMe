@@ -1,0 +1,187 @@
+J/ApJ/682/964       Sloan lens ACS survey. V.                (Bolton+, 2008)
+================================================================================
+The Sloan lens ACS survey. V. The full ACS strong-lens sample.
+    Bolton A.S., Burles S., Koopmans L.V.E., Treu T., Gavazzi R.,
+    Moustakas L.A., Wayth R., Schlegel D.J.
+   <Astrophys. J., 682, 964-984 (2008)>
+   =2008ApJ...682..964B
+================================================================================
+ADC_Keywords: Gravitational lensing ; Redshifts ; Photometry, SDSS
+Keywords: galaxies: elliptical and lenticular, cD - gravitational lensing -
+          surveys
+
+Abstract:
+    We present the definitive data for the full sample of 131 strong
+    gravitational lens candidates observed with the Advanced Camera for
+    Surveys (ACS) aboard the Hubble Space Telescope by the Sloan Lens ACS
+    (SLACS) Survey. All targets were selected for higher redshift emission
+    lines and lower redshift continuum in a single Sloan Digital Sky
+    Survey (SDSS) spectrum.
+
+Description:
+    The gravitational lenses presented in this work were all selected from
+    the spectroscopic database of the SDSS based on the presence of
+    absorption-dominated galaxy continuum at one redshift and nebular
+    emission lines (Balmer series, [OII] 3727, or [OIII] 5007) at
+    another, higher redshift.
+
+File Summary:
+--------------------------------------------------------------------------------
+ FileName  Lrecl  Records   Explanations
+--------------------------------------------------------------------------------
+ReadMe        80        .   This file
+table4.dat   113      131   SLACS HST-ACS target observational data
+notes.dat     79       10   Notes (table 6 of the paper)
+table5.dat    64       63   SLACS HST-ACS grade-A strong lens model parameters
+--------------------------------------------------------------------------------
+
+See also:
+  J/A+A/501/461 : Photometric masses of early-type lens galaxies (Grillo+, 2009)
+  http://www.sdss.org : SDSS Home Page
+
+Byte-by-byte Description of file: table4.dat
+--------------------------------------------------------------------------------
+   Bytes Format Units   Label   Explanations
+--------------------------------------------------------------------------------
+   1- 18  A18   ---     SDSS    SDSS name (HHMMSS.ss+DDMMSS.s) (1)
+  20- 23  I4    ---     Plate   SDSS Plate number
+      24  A1    ---     ---     [-]
+  25- 29  I5    ---     MJD     SDSS MJD number
+      30  A1    ---     ---     [-]
+  31- 33  I3    ---     Fiber   SDSS Fiber number
+  35- 40  F6.4  ---     zFG     Foreground galaxy redshift
+                                 (directly from SDSS database)
+  42- 47  F6.4  ---     zBG     Background galaxy redshift (measured as
+                                 described in Bolton et al. 2004AJ....127.1860B)
+  49- 53  F5.2  mag     Imag    ?=- HST-ACS I_814_ magnitude (2)
+      54  A1    ---   n_Imag    [sd] Origin of Imag (3)
+  56- 59  F4.2  mag     AI      I-band Galactic dust extinction values (4)
+  61- 65  F5.1 GsolLum  L(V555) ?=- Rest-frame luminosity in V555 band (5)
+  67- 71  F5.2  arcsec  Re      ?=- Effective radius (6)
+  73- 77  F5.3  ---     Le2/LdV ?=- Ratio of luminosity within R_e/2_ as
+                                    determined from B-spline models to
+                                    total de Vaucouleurs model luminosity
+  79- 82  F4.2  ---     b/a     ?=- Ratio of minor to major axes for the
+                                    de Vaucouleurs image models
+  84- 88  F5.1  deg     PA      ?=- de Vaucouleurs major-axis position angle
+                                    measured east from north
+  90- 92  I3    km/s    sigma   ?=- Velocity dispersion, uncorrected for
+                                    aperture effects
+  94- 95  I2    km/s  e_sigma   ?=- rms uncertainty on sigma (7)
+      97  A1    ---     Mph     [ELU] Foreground-galaxy morphology code (8)
+      98  A1    ---     ---     [-]
+      99  A1    ---     Mul     [MS] Foreground-galaxy multiplicity code (9)
+     100  A1    ---     ---     [-]
+     101  A1    ---     Lens    [AXB] Lens status code (10)
+     102  A1    ---   n_Lens    [*] Note on Lens status in notes.dat file (11)
+ 104-113  A10   ---     Name    System name (JHHMM-DDMM), as in table5
+--------------------------------------------------------------------------------
+Note (1): Nomenclature note:
+     Sources identified as SLACS JHHMMSS.ss+DDMMSS.s BG N.NNNN, where BG
+     N.NNNN is the Background galaxy redshift (zBG).
+
+Note (2): Apparent magnitudes I_814_ are from HST-ACS de Vaucouleurs
+     models, and are quoted in the AB system without correction for
+     Galactic extinction.
+
+Note (3): Note as follows:
+      s = magnitudes are measured from 420-s Snapshot exposures (s for snap)
+      d = magnitudes are measured from full-orbit multi-exposure images
+          (d for deep)
+
+Note (4): I-band Galactic dust extinction values based on Schlegel et al.
+     1998ApJ...500..525S1998) maps are given separately, and should be
+     subtracted from observed magnitudes to give dust-corrected magnitudes.
+
+Note (5): Rest-frame luminosities L_V555_ are as computed from I_814_ with
+     corrections for Galactic extinction, evolution, k-correction, and
+     cosmological distance modulus as described in the text, assuming an
+     absolute solar AB magnitude of V_555,{sun}_=4.83.
+
+Note (6): Effective radii Re are measured from de Vaucouleurs image models,
+     and quoted at the intermediate axis.
+
+Note (7): Reported errors are limited to a minimum of 0.05sigma. No sigma
+     values are reported for systems whose median S/N is less than 10 over
+     the range of rest-frame wavelengths used for the fit, or for systems
+     with multiple foreground galaxies.
+
+Note (8): Morphology is coded as follows:
+      E = for early-type (elliptical and S0)
+      L = for late-type (Sa and later)
+      U = for unclassified (galaxies that cannot be unambiguously classed
+          as early- or late-type based on the HST-ACS data)
+
+Note (9): Multiplicity is S=single, M=multiple
+
+Note (10): Lens status is coded as follows:
+       A = for systems with clear and convincing evidence of multiple imaging
+       B = for systems with strong evidence of multiple imaging but
+           insufficient S/N for definite conclusion and/or modeling
+       X = for all other systems (non-lenses and non-detections)
+
+Note (11): definite lenses, but are not modeled for reasons specified in
+     notes.dat file
+--------------------------------------------------------------------------------
+
+Byte-by-byte Description of file: notes.dat
+--------------------------------------------------------------------------------
+   Bytes Format Units   Label     Explanations
+--------------------------------------------------------------------------------
+   1-  4  A4    ---     ---       [SDSS]
+   6- 15  A10   ---     Name      System name (JHHMM+DDMM)
+  17- 79  A63   ---     Note      Test of the note
+--------------------------------------------------------------------------------
+
+Byte-by-byte Description of file: table5.dat
+--------------------------------------------------------------------------------
+   Bytes Format Units   Label     Explanations
+--------------------------------------------------------------------------------
+   1- 10  A10   ----    Name      System name (JHHMM-DDMM)
+  12- 15  F4.2  arcsec  bSIE      SIE (singularisothermal elliposoid) Einstein
+                                   radius, quoted for an intermediate-axis
+                                   normalization
+  17- 20  F4.2  ---     qSIE      Mass minor-to-major axis ratios of SIE models
+  22- 26  F5.1  deg     PASIE     Position angle (of SIE major axis), measured
+                                   in degrees east of north
+  28- 32  F5.3  ---     LSIE/LdV  Luminosity enclosed within SIE Einstein
+                                   radii (1)
+  34- 37  F4.2  arcsec  bLTM      LTM Einstein radius, quoted for an
+                                   intermediate-axis normalization
+  39- 42  F4.2  ---     gammaLTM  External shear value for LTM models
+  44- 48  F5.1  deg     PAgLTM    Position angle (of LTM external shear),
+                                   measured in degrees east of north
+  50- 54  F5.3  ---     LLTM/LdV  Luminosity enclosed within LTM Einstein
+                                    radii (1)
+      56  I1    ---     Nsrc      Number of source-plane components used to
+                                   model background galaxy
+  58- 60  A3    ---     Ring?     [Yes/No ] Ring subset? (2)
+  62- 64  A3    ---     Good?     [Yes/No ] Good sigma_SDSS_ ? (3)
+--------------------------------------------------------------------------------
+Note (1): Evaluated using B-spline luminosity models, as a fraction of de
+     Vaucouleurs total model luminosity.
+Note (2): "Ring Subset?" column indicates whether lens is included in the
+     subset of systems with full or partial Einstein-ring lensed images
+Note (3): "Good sigma_SDSS_ ?" column indicates whether velocity dispersion
+     is well-measured in SDSS data.
+--------------------------------------------------------------------------------
+
+History:
+    From electronic version of the journal
+
+References;
+    Bolton et al.    Paper I     2006ApJ...638..703B
+    Treu et al.      Paper II    2006ApJ...640..662T
+    Koopmans et al.  Paper III   2006ApJ...649..599K
+    Gavazzi et al.   Paper IV    2007ApJ...667..176G
+    Gavazzi et al.   Paper VI    2008ApJ...677.1046G
+    Bolton et al.    Paper VII   2008ApJ...684..248B
+    Treu et al.      Paper VIII. 2009ApJ...690..670T  Cat. J/ApJ/690/670
+    Auget et al.     Paper IX.   2009ApJ...705.1099A  Cat. J/ApJ/705/1099
+    Auger et al.     Paper X.    2010ApJ...724..511A
+    Newton et al.    Paper XI.   2011ApJ...734..104N
+    Shu et al.       Paper XII.  2015ApJ...803...71S
+    Shu et al.       Paper XIII. 2017ApJ...851...48S  Cat. J/ApJ/851/48
+
+================================================================================
+(End)                                      Patricia Vannier [CDS]    31-Aug-2009
