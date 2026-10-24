@@ -1,0 +1,25 @@
+\documentclass[border=4pt]{standalone}
+\input{../lenscape-style}
+
+\begin{document}
+\begin{tikzpicture}
+  \begin{loglogaxis}[
+      lenscape,
+      xmin=2, xmax=100,
+      xlabel={Vergrößerung $\mu$},
+      ylabel={Quellfläche mit $|\mu| > \mu$ \quad [arcmin$^2$]},
+      title={Kosmisches Teleskop: Suchfläche für Galaxien bei $z = 9$},
+      legend pos=south west,
+      log basis x=10, log basis y=10,
+    ]
+    \addplot[lsBlue, line width=1.1pt] table[x=mu, y=A] {data/area_abell2744_cats.dat};
+    \addlegendentry{Abell 2744, CATS}
+    \addplot[lsBlue, line width=1.1pt, densely dashed] table[x=mu, y=A] {data/area_abell2744_glafic.dat};
+    \addlegendentry{Abell 2744, GLAFIC}
+    \addplot[lsOrange, line width=1.1pt] table[x=mu, y=A] {data/area_macs0416_cats.dat};
+    \addlegendentry{MACS J0416, CATS}
+    \addplot[lsOrange, line width=1.1pt, densely dashed] table[x=mu, y=A] {data/area_macs0416_glafic.dat};
+    \addlegendentry{MACS J0416, GLAFIC}
+  \end{loglogaxis}
+\end{tikzpicture}
+\end{document}
