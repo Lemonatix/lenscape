@@ -125,7 +125,12 @@ python analysis/frontier.py        # Massenprofile, Einsteinradien, Suchfläche 
 ```
 
 Jede Karte wird zu einer Linse wie die analytischen Modelle. Verglichen werden die Modellgruppen untereinander;
-zur Kontrolle rechnet lenscape die Ablenkwinkel per FFT aus κ nach.
+zur Kontrolle rechnet lenscape die Ablenkwinkel per FFT aus κ nach. Ergebnis (Details in
+[`analysis/frontier_results.md`](analysis/frontier_results.md)): CATS und GLAFIC liefern für beide Haufen nahezu
+denselben effektiven Einsteinradius (Abell 2744: 21,4″ / 21,8″, MACS J0416: 24,7″ / 25,1″ für z_s = 2) und
+innerhalb von 100 kpc dieselbe Masse auf 1–3 %.
+
+![Frontier Fields](figures/frontier/frontier_maps.svg)
 
 ## Ein echtes HST-Bild modellieren
 
@@ -135,9 +140,13 @@ python scripts/fetch_hst_slacs.py J0946+1006   # Ausschnitt aus dem HST-Archiv
 python analysis/slacs_hst_fit.py J0946+1006    # Fit und Vergleich mit Bolton et al. (2008)
 ```
 
-Vorwärtsmodell aus Linsenlicht, SIE + Scherung, gelinster Quelle und PSF, in drei Stufen gefittet. An
+Vorwärtsmodell aus Linsenlicht, SIE + Scherung, gelinster Quelle und PSF, in drei Stufen gefittet; kosmische
+Strahlung wird maskiert. Am echten HST-Bild von J0946+1006 ergibt das reine SIE θ_E = 1,391″, q = 0,78,
+PA = 162°, nahe an Bolton et al. (2008: 1,38″, 0,81, 159°). An
 synthetischen Bildern findet der Fit θ_E auf besser als 0,1 % wieder; die Linsenmodelle stimmen mit
 *lenstronomy* auf 10⁻¹⁰ überein (`pip install -e ".[validate]"`, dann `pytest`).
+
+![HST-Fit](figures/slacs_hst/hst_fit.svg)
 
 ## Web: Foto-Linse
 
