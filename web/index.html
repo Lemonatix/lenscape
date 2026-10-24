@@ -29,6 +29,13 @@
     overflow: hidden; touch-action: none; cursor: grab; }
   .stage.dragging { cursor: grabbing; }
   .stage canvas { display: block; width: 100%; height: auto; }
+  .stage canvas.overlay { position: absolute; inset: 0; height: 100%; pointer-events: none; }
+  .badge { position: absolute; right: 10px; top: 8px; font-size: 11px; color: #cfd6e6;
+    background: rgba(0,0,0,.5); padding: 2px 7px; border-radius: 6px; pointer-events: none; }
+  .hidden { display: none !important; }
+  /* Einbettung in andere Seiten (?embed): nur Bühne und Regler */
+  body.embed header, body.embed .note { display: none; }
+  body.embed main { padding-top: 12px; }
   .stage.drop { outline: 2px dashed var(--accent); outline-offset: -8px; }
   .hint { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: #cfd6e6;
     background: rgba(0,0,0,.55); padding: 3px 8px; border-radius: 6px; pointer-events: none; }
@@ -68,7 +75,9 @@
   <section>
     <div class="stage" id="stage">
       <canvas id="view" width="900" height="600"></canvas>
+      <canvas id="overlay" class="overlay" width="900" height="600"></canvas>
       <div class="hint" id="hint">Linse ziehen · Bild hierher ziehen zum Hochladen</div>
+      <div class="badge" id="badge"></div>
     </div>
     <div class="readout">
       <div><b id="r-thetaE">–</b><span>Einsteinradius θ<sub>E</sub></span></div>
@@ -98,7 +107,17 @@
     <h2>Linse</h2>
     <div class="presets" id="models">
       <button data-model="point" class="on">Punktmasse / Schwarzes Loch</button>
-      <button data-model="sis">Galaxie (SIS)</button>
+      <button data-model="sie">Galaxie (elliptisch)</button>
+    </div>
+    <div id="sie-controls" class="hidden" style="margin-top:10px">
+      <div class="row">
+        <label for="q">Achsenverhältnis q <output id="o-q"></output></label>
+        <input type="range" id="q" min="0.3" max="1" step="0.01" value="0.75">
+      </div>
+      <div class="row">
+        <label for="phi">Orientierung <output id="o-phi"></output></label>
+        <input type="range" id="phi" min="0" max="180" step="1" value="30">
+      </div>
     </div>
     <div class="row" style="margin-top:10px">
       <label for="mass">Masse <output id="o-mass"></output></label>
@@ -132,11 +151,13 @@
     </div>
 
     <p class="note">Physik: dünne Linse in Näherung schwacher Felder,
-      β = θ − θ<sub>E</sub>²/θ (Punktmasse) bzw. β = θ − θ<sub>E</sub>·θ̂ (SIS) mit
+      β = θ − θ<sub>E</sub>²/θ (Punktmasse) bzw. β = θ − α<sub>SIE</sub>(θ) (elliptische isotherme Galaxie, Keeton 2001;
+      für q = 1 ist |α| = θ<sub>E</sub>) mit
       θ<sub>E</sub>² = 4GM/c² · D<sub>ds</sub>/(D<sub>d</sub>D<sub>s</sub>).
       Ein langsameres c verstärkt die Ablenkung wie 1/c². Abstände euklidisch (D<sub>ds</sub> = D<sub>s</sub> − D<sub>d</sub>);
       die kosmologisch korrekte Rechnung steckt im Python-Teil von <i>lenscape</i>.
-      Für sehr starke Felder (nahe am Schwarzen Loch) ist die Näherung nur qualitativ.</p>
+      Für sehr starke Felder (nahe am Schwarzen Loch) ist die Näherung nur qualitativ.
+      Gerechnet wird pro Pixel auf der Grafikkarte (WebGL2). Zum Einbinden in andere Seiten: <code>index.html?embed</code>.</p>
   </aside>
 </main>
 
@@ -150,15 +171,16 @@
 
   // ---------------------------------------------------------- DOM
   const $ = (id) => document.getElementById(id);
-  const canvas = $("view"), ctx = canvas.getContext("2d");
+  const canvas = $("view"), overlay = $("overlay"), octx = overlay.getContext("2d");
   const stage = $("stage");
   const ui = {
     mass: $("mass"), cfac: $("cfac"), dd: $("dd"), ratio: $("ratio"), fov: $("fov"),
-    ring: $("ring"), orig: $("orig"), mirror: $("mirror"),
+    q: $("q"), phi: $("phi"), ring: $("ring"), orig: $("orig"), mirror: $("mirror"),
   };
+  if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("embed");
 
   const state = { model: "point", lensX: 0.5, lensY: 0.5, body: null }; // body: undurchsichtiger Linsenkörper
-  let src = null; // {w, h, data}
+  let src = null; // {w, h, data, canvas}
 
   // ---------------------------------------------------------- Formatierung
   function fmtLen(m) {
@@ -250,24 +272,217 @@
     return grab(oc);
   }
   function grab(imgOrCanvas) {
-    const maxW = 1600;
+    const maxW = 2048;  // sicher unter dem Texturlimit aller WebGL2-Geräte
     const w0 = imgOrCanvas.naturalWidth || imgOrCanvas.width, h0 = imgOrCanvas.naturalHeight || imgOrCanvas.height;
-    const k = Math.min(1, maxW / w0);
+    const k = Math.min(1, maxW / Math.max(w0, h0));
     const w = Math.round(w0 * k), h = Math.round(h0 * k);
     const oc = document.createElement("canvas"); oc.width = w; oc.height = h;
     const g = oc.getContext("2d"); g.drawImage(imgOrCanvas, 0, 0, w, h);
-    return { w, h, data: g.getImageData(0, 0, w, h).data };
+    return { w, h, canvas: oc, data: null };
   }
   function setSource(s) {
     src = s;
-    const W = Math.min(1100, Math.max(600, stage.clientWidth * (window.devicePixelRatio > 1 ? 1.25 : 1)) | 0);
-    canvas.width = W; canvas.height = Math.round(W * s.h / s.w);
-    out = ctx.createImageData(canvas.width, canvas.height);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = Math.round(Math.min(2200, Math.max(600, stage.clientWidth * dpr)));
+    const H = Math.round(W * s.h / s.w);
+    canvas.width = overlay.width = W;
+    canvas.height = overlay.height = H;
+    renderer.setSource(s);
     schedule();
   }
 
+  // ---------------------------------------------------------- Linsenphysik in Pixeleinheiten
+  // Gemeinsame Parameter für GPU und CPU: alle Winkel in Bildschirmpixeln.
+  function lensParams(geo) {
+    const W = canvas.width, H = canvas.height;
+    const radPerPx = geo.fov / W;
+    return {
+      W, H,
+      lx: state.lensX * W, ly: state.lensY * H,
+      tE: geo.thetaE / radPerPx,
+      tSh: geo.thetaShadow / radPerPx,
+      tB: geo.thetaBody / radPerPx,
+      model: state.model === "point" ? 0 : 1,
+      q: +ui.q.value,
+      phi: (+ui.phi.value) * Math.PI / 180,
+      mirror: ui.mirror.checked,
+      orig: ui.orig.checked,
+      body: state.body,
+    };
+  }
+
+  // ---------------------------------------------------------- GPU-Renderer (WebGL2)
+  const VERT = `#version 300 es
+    in vec2 aPos; out vec2 vPix; uniform vec2 uSize;
+    void main() {
+      vPix = (aPos * 0.5 + 0.5) * uSize;      // Pixelkoordinaten, y nach oben
+      vPix.y = uSize.y - vPix.y;              // y nach unten wie im Bild
+      gl_Position = vec4(aPos, 0.0, 1.0);
+    }`;
+  const FRAG = `#version 300 es
+    precision highp float;
+    in vec2 vPix; out vec4 outColor;
+    uniform sampler2D uTex;
+    uniform vec2 uSize, uLens;
+    uniform float uTE, uShadow, uBody, uQ, uPhi;
+    uniform int uModel, uMirror, uOrig;
+    uniform vec3 uBodyColor;
+
+    vec2 deflect(vec2 t) {
+      if (uModel == 0) {                       // Punktmasse: alpha = tE^2 theta/|theta|^2
+        return uTE * uTE * t / max(dot(t, t), 1e-12);
+      }
+      // SIE (Keeton 2001), Zwischenachsen-Normierung wie lenscape.lenses.SIE
+      float q = clamp(uQ, 0.05, 1.0);
+      if (q > 0.999) return uTE * t / max(length(t), 1e-9);
+      float c = cos(uPhi), s = sin(uPhi);
+      vec2 r = vec2(c * t.x + s * t.y, -s * t.x + c * t.y);
+      float psi = sqrt(q * q * r.x * r.x + r.y * r.y) + 1e-9;
+      float e = sqrt(1.0 - q * q);
+      float pre = uTE * sqrt(q) / e;
+      float ax = pre * atan(e * r.x / psi);
+      float z = clamp(e * r.y / psi, -0.999999, 0.999999);
+      float ay = pre * 0.5 * log((1.0 + z) / (1.0 - z));   // atanh
+      return vec2(c * ax - s * ay, s * ax + c * ay);
+    }
+
+    void main() {
+      vec2 uv;
+      if (uOrig == 1) { uv = vPix / uSize; outColor = texture(uTex, uv); return; }
+      vec2 t = vPix - uLens;
+      float r = length(t);
+      if (r < uBody) {                         // Linsenkörper mit Randverdunkelung
+        float limb = sqrt(1.0 - (r / uBody) * (r / uBody)) * 0.6 + 0.4;
+        outColor = vec4(uBodyColor * limb, 1.0); return;
+      }
+      if (r < uShadow) { outColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
+      vec2 beta = t - deflect(t);
+      uv = (uLens + beta) / uSize;
+      if (uMirror == 0 && (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0)) {
+        outColor = vec4(0.024, 0.027, 0.047, 1.0); return;
+      }
+      outColor = texture(uTex, uv);            // Mipmaps glätten stark verkleinerte Bereiche
+    }`;
+
+  function makeGL() {
+    const gl = canvas.getContext("webgl2", { preserveDrawingBuffer: true, antialias: false });
+    if (!gl) return null;
+    const sh = (type, code) => {
+      const o = gl.createShader(type); gl.shaderSource(o, code); gl.compileShader(o);
+      if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o));
+      return o;
+    };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, VERT));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FRAG));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    gl.useProgram(prog);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, "aPos");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const U = {};
+    for (const n of ["uTex", "uSize", "uLens", "uTE", "uShadow", "uBody", "uQ", "uPhi", "uModel", "uMirror", "uOrig", "uBodyColor"])
+      U[n] = gl.getUniformLocation(prog, n);
+    const tex = gl.createTexture();
+    let mirrorState = null;
+
+    return {
+      name: "GPU (WebGL2)",
+      setSource(s) {
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, s.canvas);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        mirrorState = null;
+      },
+      draw(P) {
+        gl.viewport(0, 0, P.W, P.H);
+        if (mirrorState !== P.mirror) {
+          const wrap = P.mirror ? gl.MIRRORED_REPEAT : gl.CLAMP_TO_EDGE;
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
+          mirrorState = P.mirror;
+        }
+        gl.uniform1i(U.uTex, 0);
+        gl.uniform2f(U.uSize, P.W, P.H);
+        gl.uniform2f(U.uLens, P.lx, P.ly);
+        gl.uniform1f(U.uTE, P.tE);
+        gl.uniform1f(U.uShadow, P.tSh);
+        gl.uniform1f(U.uBody, P.tB);
+        gl.uniform1f(U.uQ, P.q);
+        gl.uniform1f(U.uPhi, P.phi);
+        gl.uniform1i(U.uModel, P.model);
+        gl.uniform1i(U.uMirror, P.mirror ? 1 : 0);
+        gl.uniform1i(U.uOrig, P.orig ? 1 : 0);
+        const c = P.body ? P.body.rgb.map((v) => v / 255) : [0, 0, 0];
+        gl.uniform3f(U.uBodyColor, c[0], c[1], c[2]);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      },
+    };
+  }
+
+  // ---------------------------------------------------------- CPU-Rückfall (ohne WebGL2)
+  function deflectCPU(P, tx, ty) {
+    if (P.model === 0) { const r2 = tx * tx + ty * ty + 1e-12; const f = P.tE * P.tE / r2; return [f * tx, f * ty]; }
+    const q = Math.min(Math.max(P.q, 0.05), 1);
+    if (q > 0.999) { const r = Math.hypot(tx, ty) + 1e-9; return [P.tE * tx / r, P.tE * ty / r]; }
+    const c = Math.cos(P.phi), s = Math.sin(P.phi);
+    const rx = c * tx + s * ty, ry = -s * tx + c * ty;
+    const psi = Math.sqrt(q * q * rx * rx + ry * ry) + 1e-9, e = Math.sqrt(1 - q * q), pre = P.tE * Math.sqrt(q) / e;
+    const ax = pre * Math.atan(e * rx / psi);
+    const ay = pre * Math.atanh(Math.max(-0.999999, Math.min(0.999999, e * ry / psi)));
+    return [c * ax - s * ay, s * ax + c * ay];
+  }
+  function makeCPU() {
+    const ctx = canvas.getContext("2d");
+    let data = null, sw = 0, sh = 0;
+    const reflect = (x, n) => { const T = 2 * (n - 1); let m = ((x % T) + T) % T; return m > n - 1 ? T - m : m; };
+    return {
+      name: "CPU",
+      setSource(s) { sw = s.w; sh = s.h; data = s.canvas.getContext("2d").getImageData(0, 0, sw, sh).data; },
+      draw(P) {
+        if (P.orig) { ctx.drawImage(src.canvas, 0, 0, P.W, P.H); return; }
+        const out = ctx.createImageData(P.W, P.H), d = out.data;
+        const kx = sw / P.W, ky = sh / P.H;
+        let p = 0;
+        for (let j = 0; j < P.H; j++) {
+          const ty = j + 0.5 - P.ly;
+          for (let i = 0; i < P.W; i++, p += 4) {
+            const tx = i + 0.5 - P.lx, r = Math.hypot(tx, ty);
+            if (r < P.tB) {
+              const limb = Math.sqrt(1 - (r / P.tB) ** 2) * 0.6 + 0.4;
+              d[p] = P.body.rgb[0] * limb; d[p + 1] = P.body.rgb[1] * limb; d[p + 2] = P.body.rgb[2] * limb; d[p + 3] = 255; continue;
+            }
+            if (r < P.tSh) { d[p] = d[p + 1] = d[p + 2] = 0; d[p + 3] = 255; continue; }
+            const [ax, ay] = deflectCPU(P, tx, ty);
+            let u = (P.lx + tx - ax) * kx - 0.5, v = (P.ly + ty - ay) * ky - 0.5;
+            if (P.mirror) { u = Math.min(reflect(u, sw), sw - 1.001); v = Math.min(reflect(v, sh), sh - 1.001); }
+            const x0 = Math.floor(u), y0 = Math.floor(v);
+            if (x0 < 0 || y0 < 0 || x0 >= sw - 1 || y0 >= sh - 1) { d[p] = 6; d[p + 1] = 7; d[p + 2] = 12; d[p + 3] = 255; continue; }
+            const fx = u - x0, fy = v - y0, a = (y0 * sw + x0) * 4, b = a + 4, c = a + sw * 4, e = c + 4;
+            const w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+            for (let k = 0; k < 3; k++) d[p + k] = data[a + k] * w00 + data[b + k] * w10 + data[c + k] * w01 + data[e + k] * w11;
+            d[p + 3] = 255;
+          }
+        }
+        ctx.putImageData(out, 0, 0);
+      },
+    };
+  }
+
+  let renderer;
+  try { renderer = makeGL(); } catch (err) { console.warn("WebGL2 nicht nutzbar:", err); renderer = null; }
+  if (!renderer) renderer = makeCPU();
+  $("badge").textContent = renderer.name;
+
   // ---------------------------------------------------------- Rendern
-  let out = null, pending = false;
+  let pending = false;
   function schedule() { if (!pending) { pending = true; requestAnimationFrame(draw); } }
 
   function draw() {
@@ -275,70 +490,25 @@
     if (!src) return;
     const geo = geometry();
     updateReadout(geo);
-    const W = canvas.width, H = canvas.height;
-    if (ui.orig.checked) {
-      ctx.putImageData(new ImageData(resample(src, W, H), W, H), 0, 0);
-      return;
-    }
-    const d = out.data, s = src.data, sw = src.w, sh = src.h;
-    const radPerPx = geo.fov / W;                // Bild- und Quellebene gleich skaliert
-    const srcPxPerRad = sw / geo.fov;
-    const lx = state.lensX * W, ly = state.lensY * H;
-    const tE2 = geo.thetaE * geo.thetaE, tE = geo.thetaE, tSh = geo.thetaShadow;
-    const point = state.model === "point";
-    const mirror = ui.mirror.checked;
-    // Strahlen, die außerhalb des Fotos landen: gespiegelt fortsetzen (endlose Fläche) oder dunkel
-    const reflect = (x, n) => { const P = 2 * (n - 1); let m = ((x % P) + P) % P; return m > n - 1 ? P - m : m; };
-    const scx = lx * sw / W, scy = ly * sh / H; // Linsenposition in Quellpixeln
-    const tB = geo.thetaBody, body = state.body;
+    const P = lensParams(geo);
+    renderer.draw(P);
 
-    let p = 0;
-    for (let j = 0; j < H; j++) {
-      const ty = (j + 0.5 - ly) * radPerPx;
-      for (let i = 0; i < W; i++, p += 4) {
-        const tx = (i + 0.5 - lx) * radPerPx;
-        const t = Math.hypot(tx, ty) + 1e-30;
-        if (t < tB) { // Linsenkörper (z. B. Sonnenscheibe) verdeckt alles dahinter
-          const limb = Math.sqrt(1 - (t / tB) ** 2) * 0.6 + 0.4; // Randverdunkelung
-          d[p] = body.rgb[0] * limb; d[p + 1] = body.rgb[1] * limb; d[p + 2] = body.rgb[2] * limb; d[p + 3] = 255; continue;
+    octx.clearRect(0, 0, P.W, P.H);
+    if (ui.ring.checked && !P.orig) {
+      const dpr = P.W / canvas.getBoundingClientRect().width;
+      if (P.tE > 2 && P.tE < 4 * P.W) {
+        octx.save(); octx.setLineDash([6 * dpr, 6 * dpr]); octx.strokeStyle = "rgba(124,199,255,.8)"; octx.lineWidth = 1.5 * dpr;
+        octx.beginPath();
+        if (P.model === 1 && P.q < 0.999) {
+          // kritische Kurve des SIE ~ Ellipse mit Halbachsen tE/sqrt(q) und tE*sqrt(q)
+          octx.ellipse(P.lx, P.ly, P.tE / Math.sqrt(P.q), P.tE * Math.sqrt(P.q), P.phi, 0, 2 * Math.PI);
+        } else {
+          octx.arc(P.lx, P.ly, P.tE, 0, 2 * Math.PI);
         }
-        if (t < tSh) { d[p] = d[p + 1] = d[p + 2] = 0; d[p + 3] = 255; continue; }
-        const f = point ? 1 - tE2 / (t * t) : 1 - tE / t;  // beta = f * theta
-        let u = scx + tx * f * srcPxPerRad - 0.5;
-        let v = scy + ty * f * srcPxPerRad - 0.5;
-        if (mirror) { u = Math.min(reflect(u, sw), sw - 1.001); v = Math.min(reflect(v, sh), sh - 1.001); }
-        // bilineare Interpolation
-        const x0 = Math.floor(u), y0 = Math.floor(v);
-        if (x0 < 0 || y0 < 0 || x0 >= sw - 1 || y0 >= sh - 1) {
-          d[p] = 6; d[p + 1] = 7; d[p + 2] = 12; d[p + 3] = 255; continue;
-        }
-        const fx = u - x0, fy = v - y0;
-        const a = (y0 * sw + x0) * 4, b = a + 4, c = a + sw * 4, e = c + 4;
-        const w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
-        d[p]     = s[a] * w00 + s[b] * w10 + s[c] * w01 + s[e] * w11;
-        d[p + 1] = s[a + 1] * w00 + s[b + 1] * w10 + s[c + 1] * w01 + s[e + 1] * w11;
-        d[p + 2] = s[a + 2] * w00 + s[b + 2] * w10 + s[c + 2] * w01 + s[e + 2] * w11;
-        d[p + 3] = 255;
+        octx.stroke(); octx.restore();
       }
+      octx.fillStyle = "rgba(255,176,102,.9)"; octx.beginPath(); octx.arc(P.lx, P.ly, 3 * dpr, 0, 2 * Math.PI); octx.fill();
     }
-    ctx.putImageData(out, 0, 0);
-
-    if (ui.ring.checked) {
-      const rpx = geo.thetaE / radPerPx;
-      if (rpx > 2 && rpx < 4 * W) {
-        ctx.save(); ctx.setLineDash([6, 6]); ctx.strokeStyle = "rgba(124,199,255,.8)"; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(lx, ly, rpx, 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
-      }
-      ctx.fillStyle = "rgba(255,176,102,.9)"; ctx.beginPath(); ctx.arc(lx, ly, 3, 0, 2 * Math.PI); ctx.fill();
-    }
-  }
-
-  function resample(s, W, H) {
-    const oc = document.createElement("canvas"); oc.width = s.w; oc.height = s.h;
-    oc.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(s.data), s.w, s.h), 0, 0);
-    const o2 = document.createElement("canvas"); o2.width = W; o2.height = H;
-    const g = o2.getContext("2d"); g.drawImage(oc, 0, 0, W, H);
-    return g.getImageData(0, 0, W, H).data;
   }
 
   // ---------------------------------------------------------- Anzeige
@@ -353,12 +523,14 @@
     $("r-rs").textContent = fmtLen(geo.rs);
     $("r-c").textContent = fmtSpeed(geo.c);
     $("r-mass").textContent = fmtMass(geo.M);
+    $("o-q").textContent = (+ui.q.value).toFixed(2).replace(".", ",");
+    $("o-phi").textContent = ui.phi.value + "°";
   }
 
   // ---------------------------------------------------------- Szenarien
   const SUN = { R: 6.957e8, rgb: [255, 214, 140] };
   const scenarios = {
-    galaxy: { model: "sis", mass: 1e12 * MSUN, c: 1, Dd: 1e9 * PC, ratio: 2.2, fov: null },
+    galaxy: { model: "sie", mass: 1e12 * MSUN, c: 1, Dd: 1e9 * PC, ratio: 2.2, fov: null },
     // Eddington 1919: θ_E ≈ 41″ liegt *innerhalb* der Sonnenscheibe (≈ 960″) -> kein Ring sichtbar
     sun:     { model: "point", mass: MSUN, c: 1, Dd: AU, ratio: 1e6, fov: 3 * 3600, body: SUN },
     // bei 1 % von c ist θ_E 100× größer und der Einsteinring ragt über den Sonnenrand hinaus
@@ -387,7 +559,8 @@
   }
   function setModel(m) {
     state.model = m;
-    if (m === "sis") state.body = null;
+    if (m === "sie") state.body = null;
+    $("sie-controls").classList.toggle("hidden", m !== "sie");
     document.querySelectorAll("#models button").forEach((b) => b.classList.toggle("on", b.dataset.model === m));
     schedule();
   }
