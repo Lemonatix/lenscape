@@ -31,6 +31,8 @@ Flächendichte Σ_crit = c²/(4πG) · D_s/(D_d D_ds).
 | `lenscape.strong_lenses` | Einsteinmassen, σ_SIE, M/L und Anteil Dunkler Materie einer Stichprobe |
 | `lenscape.timedelay` | Fermat-Potential und Zeitverzögerungen zwischen Bildern |
 | `lenscape.h0licow`, `lenscape.h0_inference` | die sechs H0LiCOW-Linsen und der H₀-Posterior |
+| `lenscape.clustermaps` | gitterbasierte Massenkarten (z. B. Frontier Fields) als Linse, FFT-Ablenkung, Massenprofile |
+| `lenscape.imagefit` | Linsenmodell direkt an ein Bild fitten (Licht, SIE+Scherung, Quelle, PSF) |
 | `lenscape.cosmography` | Ωₘ-w-Fit aus Einsteinradien und Geschwindigkeitsdispersionen |
 | `analysis/` | Auswerteskripte mit Ergebnissen und Abbildungen |
 | `app/` | interaktiver Simulator (Streamlit) |
@@ -115,6 +117,28 @@ damit 3,3σ über Planck. Im Simulator zeigt die Bildtabelle die Verzögerungen 
 
 ![H0-Spannung](figures/h0/h0_tension.svg)
 
+## Galaxienhaufen: Hubble Frontier Fields
+
+```bash
+python scripts/fetch_frontier.py   # Massenkarten von MAST (Abell 2744, MACS J0416; Teams CATS, GLAFIC)
+python analysis/frontier.py        # Massenprofile, Einsteinradien, Suchfläche für Galaxien bei z = 9
+```
+
+Jede Karte wird zu einer Linse wie die analytischen Modelle. Verglichen werden die Modellgruppen untereinander;
+zur Kontrolle rechnet lenscape die Ablenkwinkel per FFT aus κ nach.
+
+## Ein echtes HST-Bild modellieren
+
+```bash
+pip install -e ".[data]"
+python scripts/fetch_hst_slacs.py J0946+1006   # Ausschnitt aus dem HST-Archiv
+python analysis/slacs_hst_fit.py J0946+1006    # Fit und Vergleich mit Bolton et al. (2008)
+```
+
+Vorwärtsmodell aus Linsenlicht, SIE + Scherung, gelinster Quelle und PSF, in drei Stufen gefittet. An
+synthetischen Bildern findet der Fit θ_E auf besser als 0,1 % wieder; die Linsenmodelle stimmen mit
+*lenstronomy* auf 10⁻¹⁰ überein (`pip install -e ".[validate]"`, dann `pytest`).
+
 ## Web: Foto-Linse
 
 `web/index.html` ist eine einzelne Datei ohne Abhängigkeiten. Im Browser öffnen, Bild hochladen (oder per
@@ -138,7 +162,8 @@ analytische Bildpositionen und Vergrößerungen der SIS und M(<θ_E) = M für ei
 - [x] Simulator und Kosmologie (Punktmasse, SIS, SIE, NFW, Scherung, Kaustiken, Bildlöser)
 - [x] Web-Demo „eigenes Bild verbiegen“
 - [x] **Starke Linsen aus echten Daten**: SLACS-Katalog, Massen, Dunkle-Materie-Anteil, Kosmographie
-- [ ] **Galaxienhaufen**: Massenkarten der Hubble Frontier Fields einlesen, Mehrfachbilder vorhersagen
+- [x] **Galaxienhaufen**: Frontier-Fields-Massenkarten einlesen und vergleichen (Daten per Skript)
 - [x] **Zeitverzögerungen**: Fermat-Potential, H₀ aus den sechs H0LiCOW-Linsen
-- [ ] **Modell-Fit**: SIE+Scherung an beobachtete Bildpositionen anpassen, Abgleich mit `lenstronomy`
+- [x] **Modell-Fit**: SIE+Scherung direkt an HST-Bilder, Abgleich mit `lenstronomy`
+- [x] **Web-Demo** mit WebGL2 und Einbettungsmodus
 - [ ] **Schwache Linsen**: Scherungskataloge bzw. Planck-CMB-Lensing-Karte, Ωₘ und σ₈
