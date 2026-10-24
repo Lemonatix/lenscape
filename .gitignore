@@ -30,3 +30,6 @@ figures/*/build/
 
 # H0LiCOW-Ketten (~120 MB, per scripts/fetch_h0licow.py)
 data/h0licow/
+
+# große Archivdaten (Frontier-Fields-Karten, volle HST-Bilder)
+data/frontier/
