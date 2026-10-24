@@ -11,6 +11,7 @@ Hilfsdateien landen in figures/<thema>/build/ (nicht versioniert).
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -31,7 +32,9 @@ def build(tex: Path) -> bool:
     if not shutil.which("latexmk"):
         cmd = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", "-output-directory=build", tex.name]
         (folder / "build").mkdir(exist_ok=True)
-    r = subprocess.run(cmd, cwd=folder, capture_output=True, text=True)
+    # Reproduzierbare PDFs: feste Zeitstempel/IDs, damit Git nur echte Änderungen sieht
+    env = os.environ | {"SOURCE_DATE_EPOCH": "0", "FORCE_SOURCE_DATE": "1"}
+    r = subprocess.run(cmd, cwd=folder, capture_output=True, text=True, env=env)
     pdf = folder / "build" / tex.with_suffix(".pdf").name
     if r.returncode != 0 or not pdf.exists():
         log = folder / "build" / tex.with_suffix(".log").name
