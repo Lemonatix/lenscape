@@ -6,7 +6,9 @@ einfach
 
     beta = theta - alpha(theta)
 
-lautet. Die Konvergenz kappa = Sigma / Sigma_crit erfüllt div(alpha) = 2 kappa.
+lautet. Die Konvergenz kappa = Sigma / Sigma_crit erfüllt div(alpha) = 2 kappa,
+und das Linsenpotential psi (arcsec^2) erfüllt grad(psi) = alpha. Aus psi folgt
+das Fermat-Potential und damit die Zeitverzögerung zwischen Bildern.
 """
 
 from __future__ import annotations
@@ -39,6 +41,10 @@ class Lens:
 
     def convergence(self, x, y):
         raise NotImplementedError
+
+    def potential(self, x, y):
+        """Linsenpotential psi in arcsec^2 (bis auf eine Konstante)."""
+        raise NotImplementedError(f"{type(self).__name__} hat kein Potential implementiert")
 
     # --------------------------------------------------------- abgeleitete Größen
     def hessian(self, x, y, h: float = 1e-4):
@@ -99,6 +105,12 @@ class CompositeLens(Lens):
             k = k + comp.convergence(x, y)
         return k
 
+    def potential(self, x, y):
+        p = np.zeros(np.broadcast(x, y).shape)
+        for comp in self.components:
+            p = p + comp.potential(x, y)
+        return p
+
 
 @dataclass
 class PointMass(Lens):
@@ -121,6 +133,11 @@ class PointMass(Lens):
 
     def convergence(self, x, y):
         return np.zeros(np.broadcast(x, y).shape)
+
+    def potential(self, x, y):
+        dx = np.asarray(x, dtype=float) - self.x0
+        dy = np.asarray(y, dtype=float) - self.y0
+        return 0.5 * self.theta_E**2 * np.log(dx**2 + dy**2 + _EPS)
 
 
 @dataclass
@@ -146,6 +163,11 @@ class SIS(Lens):
         dy = np.asarray(y, dtype=float) - self.y0
         r = np.sqrt(dx**2 + dy**2) + _EPS
         return self.theta_E / (2 * r)
+
+    def potential(self, x, y):
+        dx = np.asarray(x, dtype=float) - self.x0
+        dy = np.asarray(y, dtype=float) - self.y0
+        return self.theta_E * np.sqrt(dx**2 + dy**2)
 
 
 @dataclass
@@ -193,6 +215,23 @@ class SIE(Lens):
         xr, yr = _rotate(dx, dy, self.phi)
         return self._b() / (2 * np.sqrt(q**2 * (self.s**2 + xr**2) + yr**2) + _EPS)
 
+    def potential(self, x, y):
+        """Keeton (2001): psi = x alpha_x + y alpha_y - b s ln[...] (im Hauptachsensystem)."""
+        q = min(max(self.q, 1e-3), 1.0)
+        dx = np.asarray(x, dtype=float) - self.x0
+        dy = np.asarray(y, dtype=float) - self.y0
+        xr, yr = _rotate(dx, dy, self.phi)
+        ax, ay = _rotate(*self.deflection(x, y), self.phi)
+        b, s = self._b(), self.s
+        out = xr * ax + yr * ay
+        if s > 0:
+            if q > 1 - 1e-6:
+                R = np.sqrt(xr**2 + yr**2 + s**2)
+                return b * (R - s * np.log(s + R))
+            psi = np.sqrt(q**2 * (s**2 + xr**2) + yr**2)
+            out = out - b * s * np.log(np.sqrt((psi + s) ** 2 + (1 - q**2) * xr**2))
+        return out
+
 
 @dataclass
 class ExternalShear(Lens):
@@ -212,6 +251,11 @@ class ExternalShear(Lens):
 
     def convergence(self, x, y):
         return np.zeros(np.broadcast(x, y).shape)
+
+    def potential(self, x, y):
+        x = np.asarray(x, dtype=float)
+        y = np.asarray(y, dtype=float)
+        return 0.5 * self.gamma1 * (x**2 - y**2) + self.gamma2 * x * y
 
 
 def _nfw_F(x):
@@ -281,6 +325,15 @@ class NFW(Lens):
         _, _, _, xs = self._xr(x, y)
         xs = np.where(np.abs(xs - 1) < 1e-4, 1 + 1e-4, xs)
         return 2 * self.kappa_s * (1 - _nfw_F(xs)) / (xs**2 - 1)
+
+    def potential(self, x, y):
+        _, _, _, xs = self._xr(x, y)
+        g = np.log(xs / 2) ** 2
+        lo = xs < 1
+        hi = ~lo
+        g = np.where(lo, g - np.arctanh(np.sqrt(np.clip(1 - xs**2, 0, None))) ** 2, g)
+        g = np.where(hi, g + np.arctan(np.sqrt(np.clip(xs**2 - 1, 0, None))) ** 2, g)
+        return 2 * self.kappa_s * self.theta_s**2 * g
 
 
 def einstein_radius(lens: Lens, r_max: float = 1e3) -> float:
