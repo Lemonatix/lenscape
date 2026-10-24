@@ -1,0 +1,38 @@
+\documentclass[border=4pt]{standalone}
+\input{../lenscape-style}
+\input{data/macros}
+
+\begin{document}
+\begin{tikzpicture}
+  \begin{groupplot}[
+      group style={group size=2 by 2, horizontal sep=0.35cm, vertical sep=0.9cm,
+                   x descriptions at=edge bottom, y descriptions at=edge left},
+      lenscape,
+      width=6.4cm, height=6.4cm,
+      axis equal image,
+      xmin=-60, xmax=60, ymin=-60, ymax=60,
+      xtick={-40,-20,0,20,40}, ytick={-40,-20,0,20,40},
+      xlabel={$\Delta x$ [$''$]}, ylabel={$\Delta y$ [$''$]},
+      grid=none, axis on top,
+      empty line=jump,
+      title style={font=\footnotesize\bfseries},
+    ]
+    \nextgroupplot[title={Abell 2744 \textperiodcentered{} CATS}]
+      \addplot graphics[xmin=\xminabellcats, xmax=\xmaxabellcats, ymin=\yminabellcats, ymax=\ymaxabellcats] {data/kappa_abell2744_cats.png};
+      \addplot[white, line width=0.7pt] table {data/crit_abell2744_cats.dat};
+    \nextgroupplot[title={Abell 2744 \textperiodcentered{} GLAFIC}]
+      \addplot graphics[xmin=\xminabellglafic, xmax=\xmaxabellglafic, ymin=\yminabellglafic, ymax=\ymaxabellglafic] {data/kappa_abell2744_glafic.png};
+      \addplot[white, line width=0.7pt] table {data/crit_abell2744_glafic.dat};
+    \nextgroupplot[title={MACS J0416 \textperiodcentered{} CATS}]
+      \addplot graphics[xmin=\xminmacscats, xmax=\xmaxmacscats, ymin=\yminmacscats, ymax=\ymaxmacscats] {data/kappa_macs0416_cats.png};
+      \addplot[white, line width=0.7pt] table {data/crit_macs0416_cats.dat};
+    \nextgroupplot[title={MACS J0416 \textperiodcentered{} GLAFIC}]
+      \addplot graphics[xmin=\xminmacsglafic, xmax=\xmaxmacsglafic, ymin=\yminmacsglafic, ymax=\ymaxmacsglafic] {data/kappa_macs0416_glafic.png};
+      \addplot[white, line width=0.7pt] table {data/crit_macs0416_glafic.dat};
+  \end{groupplot}
+  \node[font=\small\bfseries, text=lsInk, anchor=south] at ($(group c1r1.north)!0.5!(group c2r1.north)+(0,0.7cm)$)
+    {Konvergenz $\kappa$ und kritische Kurven ($z_\mathrm{s}=2$): zwei Haufen, zwei Modellgruppen};
+  \node[font=\scriptsize, text=lsGrey, anchor=north] at ($(group c1r2.south)!0.5!(group c2r2.south)+(0,-0.95cm)$)
+    {Farbe: $\log_{10}\kappa$ von 0{,}05 (dunkel) bis 5 (hell) \quad weiße Linien: kritische Kurven};
+\end{tikzpicture}
+\end{document}
