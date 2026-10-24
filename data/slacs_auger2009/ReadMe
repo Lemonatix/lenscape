@@ -1,0 +1,178 @@
+J/ApJ/705/1099      The Sloan Lens ACS (SLACS) Survey. IX.        (Auger+, 2009)
+================================================================================
+The Sloan Lens ACS Survey.
+IX. Colors, lensing, and stellar masses of early-type galaxies.
+    Auger M.W., Treu T., Bolton A.S., Gavazzi R., Koopmans L.V.E.,
+    Marshall P.J., Bundy K., Moustakas L.A.
+   <Astrophys. J., 705, 1099-1115 (2009)>
+   =2009ApJ...705.1099A
+================================================================================
+ADC_Keywords: Gravitational lensing ; Galaxies, optical ; Photometry, HST ;
+              Redshifts ; Surveys ; Morphology
+Keywords: galaxies: elliptical and lenticular, cD - gravitational lensing -
+          surveys
+
+Abstract:
+    We present the current photometric data set for the Sloan Lens ACS
+    (SLACS) Survey, including Hubble Space Telescope (HST) photometry from
+    Advanced Camera for Surveys, WFPC2, and NICMOS. These data have
+    enabled the confirmation of an additional 15 grade "A" (certain) lens
+    systems, bringing the number of SLACS grade "A" lenses to 85;
+    including 13 grade "B" (likely) systems, SLACS has identified nearly
+    100 lenses and lens candidates. Approximately 80% of the grade "A"
+    systems have elliptical morphologies while ~10% show spiral structure;
+    the remaining lenses have lenticular morphologies. Spectroscopic
+    redshifts for the lens and source are available for every system,
+    making SLACS the largest homogeneous data set of galaxy-scale lenses
+    to date. The ensemble properties of the SLACS lens galaxies, e.g.,
+    stellar masses and projected ellipticities, appear to be
+    indistinguishable from other SDSS galaxies with similar stellar
+    velocity dispersions. This further supports that SLACS lenses are
+    representative of the overall population of massive early-type
+    galaxies with M_*_>~10^11^M_{sun}_, and are therefore an ideal data
+    set to investigate the kpc-scale distribution of luminous and dark
+    matter in galaxies out to z~0.5.
+
+Description:
+    A campaign was initiated to obtain HST multi-band imaging in V, I, and
+    H (F555W, F814W, and F160W) for all of the confirmed SLACS lenses and
+    a small number of high-probability lens candidates from Paper V
+    (Bolton et al., 2008, Cat. J/ApJ/682/964) using the ACS WFC and NICMOS
+    NIC2 cameras (Programs 10494, 10798, and 11202; PI: Koopmans).
+
+File Summary:
+--------------------------------------------------------------------------------
+ FileName   Lrecl  Records   Explanations
+--------------------------------------------------------------------------------
+ReadMe         80        .   This file
+table1.dat     59       12   New SLACS targets
+table3.dat    105       85   Photometric and spectroscopic properties of
+                             SLACS lenses
+table4.dat    120       85   Lensing and stellar population properties of
+                             SLACS lenses
+--------------------------------------------------------------------------------
+
+See also:
+ B/hst : HST Archived Exposures Catalog (STScI, 2007)
+ J/ApJ/690/670  : The Sloan lens ACS Survey. VIII. (Treu+, 2009)
+ J/A+A/501/461  : Photometric masses of early-type lens galaxies (Grillo+, 2009)
+ J/ApJ/682/964  : Sloan lens ACS survey. V. (Bolton+, 2008)
+ J/ApJS/176/19  : COSMOS: strong lens systems (Faure+, 2008)
+ J/ApJ/668/643  : Multiply imaged gravitational lens systems (Limousin+, 2007)
+ J/ApJ/600/L155 : Gravitational lens in GOODS ACS fields (Fassnacht+, 2004)
+ http://www.slacs.org/ : SLACS home page
+ http://www.sdss.org/  : SDSS home page
+
+Byte-by-byte Description of file: table1.dat
+--------------------------------------------------------------------------------
+   Bytes Format Units   Label     Explanations
+--------------------------------------------------------------------------------
+   1-  4  A4    ---     ---       [SDSS]
+   5- 14  A10   ---     SDSS      SLACS SDSS name (JHHMM+DDMM)
+  16- 17  I2    h       RAh       Hour of right ascension (J2000)
+  19- 20  I2    min     RAm       Minute of right ascension (J2000)
+  22- 26  F5.2  s       RAs       Second of right ascension (J2000)
+      28  A1    ---     DE-       Sign of declination (J2000)
+  29- 30  I2    deg     DEd       Degree of declination (J2000)
+  32- 33  I2    arcmin  DEm       Arcminute of declination (J2000)
+  35- 38  F4.1  arcsec  DEs       Arcsecond of declination (J2000)
+  40- 44  F5.3  ---     zFG       Foreground source redshift
+  46- 50  F5.3  ---     zBG       Background source redshift
+  52- 54  I3    km/s    sigma     Velocity dispersion
+  56- 57  I2    km/s  e_sigma     rms uncertainty on sigma
+      59  A1    ---     Grade     [ABX] Grade (A: confirmed lenses; B: probable
+                                  lenses; X: unlikely lenses)
+--------------------------------------------------------------------------------
+
+Byte-by-byte Description of file: table3.dat
+--------------------------------------------------------------------------------
+   Bytes Format Units    Label    Explanations
+--------------------------------------------------------------------------------
+   1-  4  A4    ---      ---      [SDSS]
+   5- 14  A10   ---      SDSS     SLACS SDSS name (JHHMM+DDMM)
+  16- 17  I2    h        RAh      Hour of right ascension (J2000)
+  19- 20  I2    min      RAm      Minute of right ascension (J2000)
+  22- 26  F5.2  s        RAs      Second of right ascension (J2000)
+      28  A1    ---      DE-      Sign of declination (J2000)
+  29- 30  I2    deg      DEd      Degree of declination (J2000)
+  32- 33  I2    arcmin   DEm      Arcminute of declination (J2000)
+  35- 38  F4.1  arcsec   DEs      Arcsecond of declination (J2000)
+  40- 44  F5.3  ---      zlens    Lens redshift
+  46- 50  F5.3  ---      zsrc     Source redshift
+  52- 54  I3    km/s     sigma    Lensing galaxy velocity dispersion
+  56- 57  I2    km/s   e_sigma    rms uncertainty on sigma
+  59- 63  A5    ---      MType    Morphological type
+      64  A1    ---    f_MType    [c] c: the lens galaxy has at least one close
+                                  companion galaxy
+  66- 70  F5.2  mag      Bmag     ? HST/ACS B-band magnitude (F435W)
+  72- 75  F4.2  arcsec   Re(B)    ? Effective radius (measured at the
+                                  intermediate axis) in B-band
+  77- 81  F5.2  mag      Vmag     ? HST V-band magnitude (F555W or F606W)
+      83  A1    ---    f_Vmag     [ab]? a: F606W filter on WFPC2 or
+                                  b: F555W filter on ACS
+  85- 88  F4.2  arcsec   Re(V)    ? Effective radius (measured at the
+                                  intermediate axis) in V-band
+  90- 94  F5.2  mag      Imag     ? HST/ACS I-band magnitude (F814W)
+  96- 99  F4.2  arcsec   Re(I)    ? Effective radius (measured at the
+                                  intermediate axis) in I-band
+ 101-105  F5.2  mag      Hmag     ? HST/NICMOS H-band magnitude (F160W)
+--------------------------------------------------------------------------------
+
+Byte-by-byte Description of file: table4.dat
+--------------------------------------------------------------------------------
+   Bytes Format Units   Label  Explanations
+--------------------------------------------------------------------------------
+   1-  4  A4    ---     ---    [SDSS]
+   5- 14  A10   ---     SDSS   SLACS SDSS name (JHHMM+DDMM)
+  16- 19  F4.2  kpc     RE     ? Einstein radius
+  21- 25  F5.2 [Msun]   Mass   ? Log of mass within the Einstein radius
+  27- 30  F4.2  ---     Fc     ? The stellar fraction within the Einstein radius
+                                 for Chabrier IMF (f^Chab^_*,Ein_)
+  32- 35  F4.2  ---   e_Fc     ? Fc uncertainty
+  37- 40  F4.2  ---     Fs     ? The stellar fraction within the Einstein radius
+                                 for Salpeter IMF (f^Salp_*,Ein_)
+  42- 45  F4.2  ---   e_Fs     ? Fs uncertainty
+  47- 50  F4.2  ---     F      ? Ratio of the stellar fraction within the
+                               Einstein radius to the stellar fraction within
+                               the effective radius (f_*,Ein_/f_*,eff_)
+  52- 56  F5.2 [Msun]   logMc  ? Stellar mass estimate from Chabrier IMF
+  58- 61  F4.2 [Msun] e_logMc  ? Mc uncertainty
+  63- 67  F5.2 [Msun]   logMs  ? Stellar mass estimate from Salpeter IMF
+  69- 72  F4.2 [Msun] e_logMs  ? Ms uncertainty
+  74- 79  F6.2  mag     BMag   ? Absolute rest-frame Johnson B-band AB magnitude
+  81- 84  F4.2  mag   e_BMag   ? BMag uncertainty
+  86- 91  F6.2  mag     VMag   ? Absolute rest-frame Johnson V-band AB magnitude
+  93- 96  F4.2  mag   e_VMag   ? VMag uncertainty
+  98-103  F6.2  mag     BMag0  ? BMag with composite stellar population (CSP)
+                               model at z=0 (1)
+ 105-108  F4.2  mag   e_BMag0  ? BMag0 uncertainty
+ 110-115  F6.2  mag     VMag0  ? VMag with composite stellar population (CSP)
+                               model at z=0 (1)
+ 117-120  F4.2  mag   e_VMag0  ? VMag0 uncertainty
+--------------------------------------------------------------------------------
+Note (1): BMag and VMag are rest-frame Johnson B and V AB magnitudes
+     inferred from our CSP modeling. BMag0 and VMag0 are the same, except
+     the CSP models have been evolved to z=0 (the ages have been increased
+     by the amount of cosmic time between the redshift of the galaxy and
+     z=0, and the CSP models are re-evaluated with these new ages).
+--------------------------------------------------------------------------------
+
+History:
+    From electronic version of the journal
+
+References:
+    Bolton et al.   Paper I.    2006ApJ...638..703B
+    Treu et al.     Paper II.   2006ApJ...640..662T
+    Koopmans et al. Paper III.  2006ApJ...649..599K
+    Gavazzi et al.  Paper IV.   2007ApJ...667..176G
+    Bolton et al.   Paper V.    2008ApJ...682..964B  Cat. J/ApJ/682/964
+    Gavazzi et al.  Paper VI.   2008ApJ...677.1046G
+    Bolton et al.   Paper VII.  2008ApJ...684..248B
+    Treu et al.     Paper VIII. 2009ApJ...690..670T  Cat. J/ApJ/690/670
+    Auger et al.    Paper X.    2010ApJ...724..511A
+    Newton et al.   Paper XI.   2011ApJ...734..104N
+    Shu et al.      Paper XII.  2015ApJ...803...71S
+    Shu et al.      Paper XIII. 2017ApJ...851...48S  Cat. J/ApJ/851/48
+
+================================================================================
+(End)                                     Emmanuelle Perret [CDS]    05-Dec-2011
