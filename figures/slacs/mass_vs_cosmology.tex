@@ -1,0 +1,40 @@
+\documentclass[border=4pt]{standalone}
+\input{../lenscape-style}
+\input{data/scalars}
+
+\begin{document}
+\begin{tikzpicture}
+  \begin{groupplot}[
+      group style={group size=2 by 1, horizontal sep=0.6cm, y descriptions at=edge left},
+      lenscape wide,
+      ymin=0.975, ymax=1.06,
+      ytick distance=0.01,
+      /pgf/number format/fixed, /pgf/number format/precision=2,
+      ylabel={Median $M_\mathrm{E} / M_\mathrm{E}^\mathrm{ref}$},
+    ]
+    \nextgroupplot[
+      title={Dunkle Energie},
+      xlabel={Zustandsgleichung $w$},
+      xmin=-2.05, xmax=-0.35,
+    ]
+    \addplot[reference, densely dotted, forget plot] coordinates {(-2.05,1) (-0.35,1)};
+    \addplot[lsGrey, dashed, forget plot] coordinates {(-1,0.975) (-1,1.06)};
+    \addplot[lsBlue, line width=1pt, mark=*, mark size=1.2pt] table[x=w, y=ratio] {data/mass_vs_w.dat};
+    \node[font=\scriptsize, text=lsGrey, anchor=north east] at (rel axis cs:0.97,0.97)
+      {Spanne $\pgfmathprintnumber[fixed,precision=1]{\massspanw}\,\%$};
+
+    \nextgroupplot[
+      title={Materiedichte},
+      xlabel={$\Omega_\mathrm{m}$},
+      xmin=0.08, xmax=0.62,
+    ]
+    \addplot[reference, densely dotted, forget plot] coordinates {(0.08,1) (0.62,1)};
+    \addplot[lsGrey, dashed, forget plot] coordinates {(0.3,0.975) (0.3,1.06)};
+    \addplot[lsOrange, line width=1pt, mark=square*, mark size=1.1pt] table[x=Om, y=ratio] {data/mass_vs_om.dat};
+    \node[font=\scriptsize, text=lsGrey, anchor=north east] at (rel axis cs:0.97,0.97)
+      {Spanne $\pgfmathprintnumber[fixed,precision=1]{\massspanom}\,\%$};
+  \end{groupplot}
+  \node[font=\small\bfseries, text=lsInk, anchor=south] at ($(group c1r1.north)!0.5!(group c2r1.north)+(0,0.75cm)$)
+    {Wie stark hängen die gemessenen Galaxienmassen von der Kosmologie ab? \normalfont($H_0 = 70$)};
+\end{tikzpicture}
+\end{document}
