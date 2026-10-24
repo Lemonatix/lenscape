@@ -33,3 +33,4 @@ data/h0licow/
 
 # große Archivdaten (Frontier-Fields-Karten, volle HST-Bilder)
 data/frontier/
+!data/slacs_hst/*.fits
