@@ -165,16 +165,28 @@ def _bounds(names, p0):
 
 def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E0: float = 1.2,
                    q0: float = 0.8, phi0: float = 0.0, psf_fwhm: float = 0.1, supersample: int = 2,
-                   n_starts: int = 8, seed: int = 0, verbose: bool = False) -> FitResult:
-    """Dreistufiger Fit (siehe Moduldokumentation). Koordinaten relativ zur Bildmitte."""
+                   n_starts: int = 8, seed: int = 0, verbose: bool = False,
+                   fixed: dict[str, float] | None = None) -> FitResult:
+    """Dreistufiger Fit (siehe Moduldokumentation). Koordinaten relativ zur Bildmitte.
+
+    Pixel mit ``sigma = inf`` (oder NaN-Daten) werden ignoriert, z. B. kosmische Strahlung.
+    ``fixed`` hält Parameter fest, z. B. ``{"g1": 0, "g2": 0}`` für ein reines SIE ohne Scherung.
+    """
+    fixed = dict(fixed or {})
+    free = lambda names: [k for k in names if k not in fixed]  # noqa: E731
+    LIGHT_, MS_, ALL_ = free(LIGHT), free(MASS_SOURCE), free(PARAMS)
     model = LensImageModel(data.shape, pixscale, psf_fwhm, supersample)
-    w = 1.0 / np.asarray(sigma, float)
+    sigma = np.asarray(sigma, float)
+    bad = ~np.isfinite(data) | ~np.isfinite(sigma) | (sigma <= 0)
+    data = np.where(bad, 0.0, data)
+    w = np.where(bad, 0.0, 1.0 / np.where(bad, 1.0, sigma))
     rng = np.random.default_rng(seed)
     hist = []
 
     p = {k: 0.0 for k in PARAMS}
     e1, e2 = e_from_q_phi(q0, phi0)
     p.update(Rl=1.0, nl=4.0, thetaE=theta_E0, e1m=e1, e2m=e2, Rs=0.15, ns=1.0)
+    p.update(fixed)
 
     def residual_fn(names, mask=None, use_source=True):
         def f(v):
@@ -191,15 +203,15 @@ def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E
     rr = np.hypot(xx, yy)
     ring = (rr > 0.5 * theta_E0) & (rr < 1.7 * theta_E0)
     mask = (~ring).astype(float)
-    lo, hi = _bounds(LIGHT, p)
-    sol = least_squares(residual_fn(LIGHT, mask, use_source=False), _vec(p, LIGHT), bounds=(lo, hi), x_scale="jac")
-    p.update(zip(LIGHT, sol.x))
+    lo, hi = _bounds(LIGHT_, p)
+    sol = least_squares(residual_fn(LIGHT_, mask, use_source=False), _vec(p, LIGHT_), bounds=(lo, hi), x_scale="jac")
+    p.update(zip(LIGHT_, sol.x))
     hist.append(("Licht", 2 * sol.cost))
     if verbose:
-        print("Stufe 1 (Licht):", {k: round(p[k], 3) for k in LIGHT})
+        print("Stufe 1 (Licht):", {k: round(p[k], 3) for k in LIGHT_})
 
     # ---- Stufe 2: Masse + Quelle, mehrere Starts
-    lo, hi = _bounds(MASS_SOURCE, p)
+    lo, hi = _bounds(MS_, p)
     best = None
     for k in range(n_starts):
         start = dict(p)
@@ -207,26 +219,26 @@ def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E
             ang, rad = rng.uniform(0, 2 * np.pi), rng.uniform(0.0, 0.4) * theta_E0
             start.update(xs=rad * np.cos(ang), ys=rad * np.sin(ang),
                          thetaE=theta_E0 * rng.uniform(0.85, 1.15), Rs=rng.uniform(0.05, 0.4))
-        v0 = np.clip(_vec(start, MASS_SOURCE), lo + 1e-6, hi - 1e-6)
-        sol = least_squares(residual_fn(MASS_SOURCE), v0, bounds=(lo, hi), x_scale="jac", max_nfev=400)
+        v0 = np.clip(_vec(start, MS_), lo + 1e-6, hi - 1e-6)
+        sol = least_squares(residual_fn(MS_), v0, bounds=(lo, hi), x_scale="jac", max_nfev=400)
         if best is None or sol.cost < best.cost:
             best = sol
         if verbose:
-            print(f"Stufe 2, Start {k}: chi2 = {2 * sol.cost:.1f}, thetaE = {sol.x[0]:.3f}")
-    p.update(zip(MASS_SOURCE, best.x))
+            print(f"Stufe 2, Start {k}: chi2 = {2 * sol.cost:.1f}, thetaE = {sol.x[MS_.index("thetaE")]:.3f}")
+    p.update(zip(MS_, best.x))
     hist.append(("Masse+Quelle", 2 * best.cost))
 
     # ---- Stufe 3: alles gemeinsam
-    lo, hi = _bounds(PARAMS, p)
-    sol = least_squares(residual_fn(PARAMS), np.clip(_vec(p, PARAMS), lo + 1e-6, hi - 1e-6),
+    lo, hi = _bounds(ALL_, p)
+    sol = least_squares(residual_fn(ALL_), np.clip(_vec(p, ALL_), lo + 1e-6, hi - 1e-6),
                         bounds=(lo, hi), x_scale="jac", max_nfev=600)
-    p.update(zip(PARAMS, sol.x))
+    p.update(zip(ALL_, sol.x))
     hist.append(("gemeinsam", 2 * sol.cost))
 
     L, S, b, amps = model.solve_linear(p, data, w)
     m = L + S + b
     chi2 = float(np.sum(((data - m) * w) ** 2))
-    return FitResult(p, amps, chi2, data.size - len(PARAMS) - 3, m, L, S, (data - m) * w, hist)
+    return FitResult(p, amps, chi2, int((w > 0).sum()) - len(ALL_) - 3, m, L, S, (data - m) * w, hist)
 
 
 def estimate_noise(data: np.ndarray, exptime: float | None = None, border: int = 10) -> np.ndarray:
