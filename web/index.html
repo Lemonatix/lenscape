@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gravitationslinse – eigenes Bild verbiegen</title>
+<meta name="description" content="Lade ein Foto hoch und sieh, wie eine Masse davor das Licht ablenkt. Mit Reglern für Masse, Abstände und Lichtgeschwindigkeit.">
+<style>
+  :root {
+    --bg: #07090f;
+    --panel: #10141e;
+    --line: #232a3a;
+    --text: #e6e9f2;
+    --muted: #8b93a8;
+    --accent: #7cc7ff;
+    --warm: #ffb066;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 22px 20px 6px; max-width: 1280px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.55rem; font-weight: 650; letter-spacing: -0.01em; }
+  header p { margin: 4px 0 0; color: var(--muted); max-width: 72ch; }
+  main { max-width: 1280px; margin: 0 auto; padding: 14px 20px 40px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px 32px; } }
+
+  .stage { position: relative; background: #000; border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; touch-action: none; cursor: grab; }
+  .stage.dragging { cursor: grabbing; }
+  .stage canvas { display: block; width: 100%; height: auto; }
+  .stage.drop { outline: 2px dashed var(--accent); outline-offset: -8px; }
+  .hint { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: #cfd6e6;
+    background: rgba(0,0,0,.55); padding: 3px 8px; border-radius: 6px; pointer-events: none; }
+  .readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+  .readout div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .readout b { display: block; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+  .readout span { font-size: 12px; color: var(--muted); }
+
+  aside { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px;
+    align-self: start; }
+  aside h2 { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+    margin: 16px 0 8px; font-weight: 600; }
+  aside h2:first-child { margin-top: 0; }
+  .row { margin-bottom: 12px; }
+  .row label { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; }
+  .row label output { color: var(--accent); font-variant-numeric: tabular-nums; text-align: right; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .presets, .toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+  button, .file { background: #1a2131; color: var(--text); border: 1px solid var(--line); border-radius: 7px;
+    padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  button:hover, .file:hover { border-color: var(--accent); }
+  button.on { background: #1d3550; border-color: var(--accent); }
+  .file input { display: none; }
+  .toggles label { font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 14px; }
+  .light { color: var(--warm); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Gravitationslinse: verbieg dein eigenes Bild</h1>
+  <p>Eine Masse vor deinem Bild krümmt die Raumzeit, Lichtstrahlen werden abgelenkt. Ziehe die Linse mit der Maus,
+     verändere Masse und Abstände, oder mach das Licht langsamer.</p>
+</header>
+
+<main>
+  <section>
+    <div class="stage" id="stage">
+      <canvas id="view" width="900" height="600"></canvas>
+      <div class="hint" id="hint">Linse ziehen · Bild hierher ziehen zum Hochladen</div>
+    </div>
+    <div class="readout">
+      <div><b id="r-thetaE">–</b><span>Einsteinradius θ<sub>E</sub></span></div>
+      <div><b id="r-rs">–</b><span>Schwarzschildradius</span></div>
+      <div><b id="r-c">–</b><span>Lichtgeschwindigkeit</span></div>
+      <div><b id="r-mass">–</b><span>Masse</span></div>
+    </div>
+  </section>
+
+  <aside>
+    <h2>Bild</h2>
+    <div class="presets">
+      <label class="file">Bild hochladen…<input type="file" id="file" accept="image/*"></label>
+      <button data-pattern="stars">Sternfeld</button>
+      <button data-pattern="grid">Gitter</button>
+      <button id="download">Ergebnis speichern</button>
+    </div>
+
+    <h2>Szenario</h2>
+    <div class="presets" id="scenarios">
+      <button data-scn="galaxy">Galaxie im All</button>
+      <button data-scn="sun">Sonne (1919)</button>
+      <button data-scn="room">Schwarzes Loch im Zimmer</button>
+      <button data-scn="slowsun">Sonne, c = 1 %</button>
+    </div>
+
+    <h2>Linse</h2>
+    <div class="presets" id="models">
+      <button data-model="point" class="on">Punktmasse / Schwarzes Loch</button>
+      <button data-model="sis">Galaxie (SIS)</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label for="mass">Masse <output id="o-mass"></output></label>
+      <input type="range" id="mass" min="0" max="44" step="0.01">
+    </div>
+    <div class="row">
+      <label for="cfac">Lichtgeschwindigkeit <output id="o-cfac" class="light"></output></label>
+      <input type="range" id="cfac" min="-9" max="0" step="0.01">
+    </div>
+
+    <h2>Geometrie</h2>
+    <div class="row">
+      <label for="dd">Abstand Beobachter → Linse <output id="o-dd"></output></label>
+      <input type="range" id="dd" min="-1" max="26.5" step="0.01">
+    </div>
+    <div class="row">
+      <label for="ratio">Bild liegt … mal so weit weg <output id="o-ratio"></output></label>
+      <input type="range" id="ratio" min="0.005" max="6" step="0.005">
+    </div>
+    <div class="row">
+      <label for="fov">Bildbreite (Blickwinkel) <output id="o-fov"></output></label>
+      <input type="range" id="fov" min="-4" max="5.3" step="0.01">
+    </div>
+    <div class="presets"><button id="autofov">Bildbreite an θ<sub>E</sub> anpassen</button></div>
+
+    <h2>Anzeige</h2>
+    <div class="toggles">
+      <label><input type="checkbox" id="ring" checked> Einsteinring</label>
+      <label><input type="checkbox" id="orig"> Original zeigen</label>
+      <label><input type="checkbox" id="mirror" checked> Bildrand spiegeln</label>
+    </div>
+
+    <p class="note">Physik: dünne Linse in Näherung schwacher Felder,
+      β = θ − θ<sub>E</sub>²/θ (Punktmasse) bzw. β = θ − θ<sub>E</sub>·θ̂ (SIS) mit
+      θ<sub>E</sub>² = 4GM/c² · D<sub>ds</sub>/(D<sub>d</sub>D<sub>s</sub>).
+      Ein langsameres c verstärkt die Ablenkung wie 1/c². Abstände euklidisch (D<sub>ds</sub> = D<sub>s</sub> − D<sub>d</sub>);
+      die kosmologisch korrekte Rechnung steckt im Python-Teil von <i>lenscape</i>.
+      Für sehr starke Felder (nahe am Schwarzen Loch) ist die Näherung nur qualitativ.</p>
+  </aside>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  // ---------------------------------------------------------- Konstanten (SI)
+  const G = 6.674e-11, C0 = 2.99792458e8, MSUN = 1.989e30, MEARTH = 5.972e24;
+  const AU = 1.496e11, LY = 9.461e15, PC = 3.0857e16;
+  const ARCSEC = Math.PI / 180 / 3600;
+
+  // ---------------------------------------------------------- DOM
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("view"), ctx = canvas.getContext("2d");
+  const stage = $("stage");
+  const ui = {
+    mass: $("mass"), cfac: $("cfac"), dd: $("dd"), ratio: $("ratio"), fov: $("fov"),
+    ring: $("ring"), orig: $("orig"), mirror: $("mirror"),
+  };
+
+  const state = { model: "point", lensX: 0.5, lensY: 0.5, body: null }; // body: undurchsichtiger Linsenkörper
+  let src = null; // {w, h, data}
+
+  // ---------------------------------------------------------- Formatierung
+  function fmtLen(m) {
+    if (m < 1) return (m * 100).toPrecision(3) + " cm";
+    if (m < 1e3) return m.toPrecision(3) + " m";
+    if (m < 0.1 * AU) return (m / 1e3).toPrecision(3) + " km";
+    if (m < 0.2 * LY) return (m / AU).toPrecision(3) + " AE";
+    if (m < 1e3 * PC) return (m / LY).toPrecision(3) + " Lj";
+    if (m < 1e6 * PC) return (m / PC / 1e3).toPrecision(3) + " kpc";
+    if (m < 1e9 * PC) return (m / PC / 1e6).toPrecision(3) + " Mpc";
+    return (m / PC / 1e9).toPrecision(3) + " Gpc";
+  }
+  function fmtAngle(rad) {
+    const a = rad / ARCSEC;
+    if (a < 1e-3) return (a * 1e6).toPrecision(3) + " µas";
+    if (a < 1) return (a * 1e3).toPrecision(3) + " mas";
+    if (a < 60) return a.toPrecision(3) + "″";
+    if (a < 3600) return (a / 60).toPrecision(3) + "′";
+    return (a / 3600).toPrecision(3) + "°";
+  }
+  function fmtMass(kg) {
+    const sci = (v) => {
+      const e = Math.floor(Math.log10(v));
+      return e >= -2 && e <= 3 ? v.toPrecision(3) : (v / 10 ** e).toFixed(2) + "·10" + sup(e);
+    };
+    if (kg < 0.1 * MEARTH) return sci(kg) + " kg";
+    if (kg < 0.05 * MSUN) return sci(kg / MEARTH) + " Erdmassen";
+    return sci(kg / MSUN) + " M☉";
+  }
+  function sup(n) { return String(n).replace(/[-0-9]/g, (d) => "⁻⁰¹²³⁴⁵⁶⁷⁸⁹"["-0123456789".indexOf(d)]); }
+  function fmtSpeed(v) {
+    if (v >= 1e6) { const e = Math.floor(Math.log10(v / 1e3)); return (v / 1e3 / 10 ** e).toFixed(2) + "·10" + sup(e) + " km/s"; }
+    if (v >= 1e3) return (v / 1e3).toPrecision(3) + " km/s";
+    return (v * 3.6).toPrecision(3) + " km/h";
+  }
+
+  // ---------------------------------------------------------- Physik
+  function geometry() {
+    const M = 10 ** +ui.mass.value;
+    const c = C0 * 10 ** +ui.cfac.value;
+    const Dd = 10 ** +ui.dd.value;
+    const Ds = Dd * 10 ** +ui.ratio.value; // Ratio-Regler ist log10(D_s/D_d)
+    const Dds = Ds - Dd;
+    const rs = 2 * G * M / (c * c);
+    const thetaE = Math.sqrt(4 * G * M / (c * c) * Dds / (Dd * Ds));
+    // Photonensphären-Schatten: Stoßparameter b < 3√3/2 · r_s wird eingefangen
+    const thetaShadow = state.model === "point" ? Math.min(1.5 * Math.sqrt(3) * rs / Dd, Math.PI / 2) : 0;
+    const fov = 10 ** +ui.fov.value * ARCSEC; // Bildbreite (rad)
+    const thetaBody = state.body ? Math.atan(state.body.R / Dd) : 0;
+    return { M, c, Dd, Ds, Dds, rs, thetaE, thetaShadow, thetaBody, fov };
+  }
+
+  // ---------------------------------------------------------- Testbilder
+  function makePattern(kind) {
+    const w = 1200, h = 800;
+    const oc = document.createElement("canvas"); oc.width = w; oc.height = h;
+    const g = oc.getContext("2d");
+    if (kind === "grid") {
+      g.fillStyle = "#0b1020"; g.fillRect(0, 0, w, h);
+      for (let i = 0; i <= 24; i++) {
+        g.strokeStyle = i % 4 === 0 ? "#7cc7ff" : "#2c4a6e"; g.lineWidth = i % 4 === 0 ? 3 : 1.5;
+        g.beginPath(); g.moveTo(i * w / 24, 0); g.lineTo(i * w / 24, h); g.stroke();
+      }
+      for (let j = 0; j <= 16; j++) {
+        g.strokeStyle = j % 4 === 0 ? "#ffb066" : "#5a3d22"; g.lineWidth = j % 4 === 0 ? 3 : 1.5;
+        g.beginPath(); g.moveTo(0, j * h / 16); g.lineTo(w, j * h / 16); g.stroke();
+      }
+      g.fillStyle = "#fff"; g.font = "bold 90px system-ui"; g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillText("lenscape", w / 2, h / 2);
+    } else {
+      // Sternfeld mit ein paar Hintergrundgalaxien (deterministisch)
+      let s = 7; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+      g.fillStyle = "#03040a"; g.fillRect(0, 0, w, h);
+      for (let k = 0; k < 14; k++) {
+        const x = rnd() * w, y = rnd() * h, r = 12 + rnd() * 40, ang = rnd() * Math.PI, q = 0.3 + rnd() * 0.6;
+        const hue = rnd() < 0.5 ? "255,190,120" : "150,190,255";
+        g.save(); g.translate(x, y); g.rotate(ang); g.scale(1, q);
+        const gr = g.createRadialGradient(0, 0, 0, 0, 0, r);
+        gr.addColorStop(0, `rgba(${hue},0.95)`); gr.addColorStop(0.35, `rgba(${hue},0.35)`); gr.addColorStop(1, `rgba(${hue},0)`);
+        g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, 2 * Math.PI); g.fill(); g.restore();
+      }
+      for (let k = 0; k < 1600; k++) {
+        const x = rnd() * w, y = rnd() * h, b = rnd() ** 3;
+        const r = 0.6 + b * 2.2;
+        g.fillStyle = `rgba(255,255,255,${0.35 + 0.65 * b})`;
+        g.beginPath(); g.arc(x, y, r, 0, 2 * Math.PI); g.fill();
+      }
+    }
+    return grab(oc);
+  }
+  function grab(imgOrCanvas) {
+    const maxW = 1600;
+    const w0 = imgOrCanvas.naturalWidth || imgOrCanvas.width, h0 = imgOrCanvas.naturalHeight || imgOrCanvas.height;
+    const k = Math.min(1, maxW / w0);
+    const w = Math.round(w0 * k), h = Math.round(h0 * k);
+    const oc = document.createElement("canvas"); oc.width = w; oc.height = h;
+    const g = oc.getContext("2d"); g.drawImage(imgOrCanvas, 0, 0, w, h);
+    return { w, h, data: g.getImageData(0, 0, w, h).data };
+  }
+  function setSource(s) {
+    src = s;
+    const W = Math.min(1100, Math.max(600, stage.clientWidth * (window.devicePixelRatio > 1 ? 1.25 : 1)) | 0);
+    canvas.width = W; canvas.height = Math.round(W * s.h / s.w);
+    out = ctx.createImageData(canvas.width, canvas.height);
+    schedule();
+  }
+
+  // ---------------------------------------------------------- Rendern
+  let out = null, pending = false;
+  function schedule() { if (!pending) { pending = true; requestAnimationFrame(draw); } }
+
+  function draw() {
+    pending = false;
+    if (!src) return;
+    const geo = geometry();
+    updateReadout(geo);
+    const W = canvas.width, H = canvas.height;
+    if (ui.orig.checked) {
+      ctx.putImageData(new ImageData(resample(src, W, H), W, H), 0, 0);
+      return;
+    }
+    const d = out.data, s = src.data, sw = src.w, sh = src.h;
+    const radPerPx = geo.fov / W;                // Bild- und Quellebene gleich skaliert
+    const srcPxPerRad = sw / geo.fov;
+    const lx = state.lensX * W, ly = state.lensY * H;
+    const tE2 = geo.thetaE * geo.thetaE, tE = geo.thetaE, tSh = geo.thetaShadow;
+    const point = state.model === "point";
+    const mirror = ui.mirror.checked;
+    // Strahlen, die außerhalb des Fotos landen: gespiegelt fortsetzen (endlose Fläche) oder dunkel
+    const reflect = (x, n) => { const P = 2 * (n - 1); let m = ((x % P) + P) % P; return m > n - 1 ? P - m : m; };
+    const scx = lx * sw / W, scy = ly * sh / H; // Linsenposition in Quellpixeln
+    const tB = geo.thetaBody, body = state.body;
+
+    let p = 0;
+    for (let j = 0; j < H; j++) {
+      const ty = (j + 0.5 - ly) * radPerPx;
+      for (let i = 0; i < W; i++, p += 4) {
+        const tx = (i + 0.5 - lx) * radPerPx;
+        const t = Math.hypot(tx, ty) + 1e-30;
+        if (t < tB) { // Linsenkörper (z. B. Sonnenscheibe) verdeckt alles dahinter
+          const limb = Math.sqrt(1 - (t / tB) ** 2) * 0.6 + 0.4; // Randverdunkelung
+          d[p] = body.rgb[0] * limb; d[p + 1] = body.rgb[1] * limb; d[p + 2] = body.rgb[2] * limb; d[p + 3] = 255; continue;
+        }
+        if (t < tSh) { d[p] = d[p + 1] = d[p + 2] = 0; d[p + 3] = 255; continue; }
+        const f = point ? 1 - tE2 / (t * t) : 1 - tE / t;  // beta = f * theta
+        let u = scx + tx * f * srcPxPerRad - 0.5;
+        let v = scy + ty * f * srcPxPerRad - 0.5;
+        if (mirror) { u = Math.min(reflect(u, sw), sw - 1.001); v = Math.min(reflect(v, sh), sh - 1.001); }
+        // bilineare Interpolation
+        const x0 = Math.floor(u), y0 = Math.floor(v);
+        if (x0 < 0 || y0 < 0 || x0 >= sw - 1 || y0 >= sh - 1) {
+          d[p] = 6; d[p + 1] = 7; d[p + 2] = 12; d[p + 3] = 255; continue;
+        }
+        const fx = u - x0, fy = v - y0;
+        const a = (y0 * sw + x0) * 4, b = a + 4, c = a + sw * 4, e = c + 4;
+        const w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+        d[p]     = s[a] * w00 + s[b] * w10 + s[c] * w01 + s[e] * w11;
+        d[p + 1] = s[a + 1] * w00 + s[b + 1] * w10 + s[c + 1] * w01 + s[e + 1] * w11;
+        d[p + 2] = s[a + 2] * w00 + s[b + 2] * w10 + s[c + 2] * w01 + s[e + 2] * w11;
+        d[p + 3] = 255;
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+
+    if (ui.ring.checked) {
+      const rpx = geo.thetaE / radPerPx;
+      if (rpx > 2 && rpx < 4 * W) {
+        ctx.save(); ctx.setLineDash([6, 6]); ctx.strokeStyle = "rgba(124,199,255,.8)"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(lx, ly, rpx, 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
+      }
+      ctx.fillStyle = "rgba(255,176,102,.9)"; ctx.beginPath(); ctx.arc(lx, ly, 3, 0, 2 * Math.PI); ctx.fill();
+    }
+  }
+
+  function resample(s, W, H) {
+    const oc = document.createElement("canvas"); oc.width = s.w; oc.height = s.h;
+    oc.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(s.data), s.w, s.h), 0, 0);
+    const o2 = document.createElement("canvas"); o2.width = W; o2.height = H;
+    const g = o2.getContext("2d"); g.drawImage(oc, 0, 0, W, H);
+    return g.getImageData(0, 0, W, H).data;
+  }
+
+  // ---------------------------------------------------------- Anzeige
+  function updateReadout(geo) {
+    $("o-mass").textContent = fmtMass(geo.M);
+    const cf = 10 ** +ui.cfac.value;
+    $("o-cfac").textContent = cf >= 0.999 ? "real" : (cf >= 1e-3 ? (cf * 100).toPrecision(3) + " %" : (cf / 10 ** Math.floor(Math.log10(cf))).toFixed(1) + "·10" + sup(Math.floor(Math.log10(cf))) + " c");
+    $("o-dd").textContent = fmtLen(geo.Dd);
+    $("o-ratio").textContent = "D_s = " + fmtLen(geo.Ds);
+    $("o-fov").textContent = fmtAngle(geo.fov);
+    $("r-thetaE").textContent = fmtAngle(geo.thetaE) + " · " + Math.round(geo.thetaE / geo.fov * 100) + " % des Bilds";
+    $("r-rs").textContent = fmtLen(geo.rs);
+    $("r-c").textContent = fmtSpeed(geo.c);
+    $("r-mass").textContent = fmtMass(geo.M);
+  }
+
+  // ---------------------------------------------------------- Szenarien
+  const SUN = { R: 6.957e8, rgb: [255, 214, 140] };
+  const scenarios = {
+    galaxy: { model: "sis", mass: 1e12 * MSUN, c: 1, Dd: 1e9 * PC, ratio: 2.2, fov: null },
+    // Eddington 1919: θ_E ≈ 41″ liegt *innerhalb* der Sonnenscheibe (≈ 960″) -> kein Ring sichtbar
+    sun:     { model: "point", mass: MSUN, c: 1, Dd: AU, ratio: 1e6, fov: 3 * 3600, body: SUN },
+    // bei 1 % von c ist θ_E 100× größer und der Einsteinring ragt über den Sonnenrand hinaus
+    slowsun: { model: "point", mass: MSUN, c: 0.01, Dd: AU, ratio: 1e6, fov: 4 * 3600, body: SUN },
+    // ~3 Erdmassen, kollabiert auf Murmelgröße (r_s ≈ 2,7 cm), 1 m vor dir, Wand 3 m entfernt
+    room:    { model: "point", mass: 3 * MEARTH, c: 1, Dd: 1.0, ratio: 3, fov: 60 * 3600 },
+  };
+  function applyScenario(key) {
+    const s = scenarios[key];
+    setModel(s.model);
+    ui.mass.value = Math.log10(s.mass);
+    ui.cfac.value = Math.log10(s.c);
+    ui.dd.value = Math.log10(s.Dd);
+    ui.ratio.value = Math.log10(s.ratio);
+    state.body = s.body || null;
+    if (s.fov) ui.fov.value = Math.log10(s.fov); else autoFov();
+    state.lensX = 0.5; state.lensY = 0.5;
+    document.querySelectorAll("#scenarios button").forEach((b) => b.classList.toggle("on", b.dataset.scn === key));
+    schedule();
+  }
+  function autoFov() {
+    const geo = geometry();
+    const target = Math.max(5 * geo.thetaE, 4 * geo.thetaShadow);
+    ui.fov.value = Math.min(+ui.fov.max, Math.max(+ui.fov.min, Math.log10(target / ARCSEC)));
+    schedule();
+  }
+  function setModel(m) {
+    state.model = m;
+    if (m === "sis") state.body = null;
+    document.querySelectorAll("#models button").forEach((b) => b.classList.toggle("on", b.dataset.model === m));
+    schedule();
+  }
+
+  // ---------------------------------------------------------- Events
+  Object.values(ui).forEach((el) => el.addEventListener("input", () => {
+    document.querySelectorAll("#scenarios button").forEach((b) => b.classList.remove("on"));
+    schedule();
+  }));
+  document.querySelectorAll("[data-scn]").forEach((b) => b.addEventListener("click", () => applyScenario(b.dataset.scn)));
+  document.querySelectorAll("[data-model]").forEach((b) => b.addEventListener("click", () => setModel(b.dataset.model)));
+  document.querySelectorAll("[data-pattern]").forEach((b) => b.addEventListener("click", () => setSource(makePattern(b.dataset.pattern))));
+  $("autofov").addEventListener("click", autoFov);
+
+  function loadFile(file) {
+    if (!file || !file.type.startsWith("image/")) return;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { setSource(grab(img)); URL.revokeObjectURL(url); };
+    img.src = url;
+  }
+  $("file").addEventListener("change", (e) => loadFile(e.target.files[0]));
+  ["dragenter", "dragover"].forEach((ev) => stage.addEventListener(ev, (e) => { e.preventDefault(); stage.classList.add("drop"); }));
+  ["dragleave", "drop"].forEach((ev) => stage.addEventListener(ev, (e) => { e.preventDefault(); stage.classList.remove("drop"); }));
+  stage.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
+
+  // Linse ziehen
+  let dragging = false;
+  function moveLens(e) {
+    const r = canvas.getBoundingClientRect();
+    state.lensX = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    state.lensY = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    schedule();
+  }
+  stage.addEventListener("pointerdown", (e) => { dragging = true; stage.classList.add("dragging"); stage.setPointerCapture(e.pointerId); moveLens(e); });
+  stage.addEventListener("pointermove", (e) => { if (dragging) moveLens(e); });
+  stage.addEventListener("pointerup", () => { dragging = false; stage.classList.remove("dragging"); });
+
+  $("download").addEventListener("click", () => {
+    canvas.toBlob((blob) => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "gelinst.png"; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, "image/png");
+  });
+
+  // ---------------------------------------------------------- Start
+  setSource(makePattern("stars"));
+  applyScenario("room");
+})();
+</script>
+</body>
+</html>
