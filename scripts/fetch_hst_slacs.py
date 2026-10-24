@@ -66,23 +66,48 @@ def fetch(name: str) -> None:
     path = man["Local Path"][0]
     print(f"  {Path(path).name}")
 
+    make_cutout(path, coord, name)
+
+
+def make_cutout(path, coord, name: str) -> Path:
+    """12″-Ausschnitt um ``coord`` aus einem gedrizzten Bild speichern.
+
+    HST-Pipeline-Produkte haben die Daten in der Ebene "SCI", Produkte des
+    Hubble Legacy Archive (HLA) direkt in der Primär-Ebene; genommen wird die
+    erste Ebene mit einem 2D-Bild.
+    """
+    import astropy.units as u
+    from astropy.io import fits
+    from astropy.nddata import Cutout2D
+    from astropy.wcs import WCS
+
     with fits.open(path) as hdul:
-        sci = hdul["SCI"] if "SCI" in hdul else hdul[1]
+        if "SCI" in hdul:
+            sci = hdul["SCI"]
+        else:
+            sci = next(h for h in hdul if h.data is not None and np.ndim(h.data) == 2)
+        prim = hdul[0].header
         wcs = WCS(sci.header)
         pix = abs(wcs.proj_plane_pixel_scales()[0].to(u.arcsec).value)
         size = int(round(CUTOUT_ARCSEC / pix))
         cut = Cutout2D(sci.data, coord, (size, size), wcs=wcs)
         hdr = cut.wcs.to_header()
-        hdr["BUNIT"] = sci.header.get("BUNIT", "")
+        hdr["BUNIT"] = sci.header.get("BUNIT", prim.get("BUNIT", ""))
         hdr["PIXSCALE"] = (pix, "arcsec/pixel")
-        hdr["EXPTIME"] = hdul[0].header.get("EXPTIME", sci.header.get("EXPTIME", 0.0))
-        hdr["PHOTFLAM"] = sci.header.get("PHOTFLAM", hdul[0].header.get("PHOTFLAM", 0.0))
+        exptime = float(prim.get("EXPTIME", sci.header.get("EXPTIME", 0.0)) or 0.0)
+        if exptime <= 1.0:
+            # HLA normiert EXPTIME auf 1 s; die echte Zeit steckt in den Drizzle-Einträgen D###DEXP
+            exptime = sum(float(v) for k, v in prim.items() if k.startswith("D") and k.endswith("DEXP"))
+        hdr["EXPTIME"] = (exptime, "s, Summe der Einzelbelichtungen")
+        hdr["PHOTFLAM"] = sci.header.get("PHOTFLAM", prim.get("PHOTFLAM", 0.0))
         hdr["ORIGFILE"] = Path(path).name
         hdr["OBJECT"] = name
         OUT.mkdir(parents=True, exist_ok=True)
         target = OUT / f"{name}_F814W.fits"
         fits.PrimaryHDU(cut.data.astype(np.float32), header=hdr).writeto(target, overwrite=True)
-        print(f"  Ausschnitt {size}×{size} px ({pix:.3f}″/px) -> {target.relative_to(ROOT)}")
+        print(f"  Ausschnitt {size}×{size} px ({pix:.3f}″/px, BUNIT={hdr['BUNIT']}, EXPTIME={hdr['EXPTIME']}) "
+              f"-> {target.relative_to(ROOT)}")
+    return target
 
 
 def main(argv: list[str]) -> int:
