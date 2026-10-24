@@ -15,6 +15,15 @@
 \definecolor{lsGrey}{HTML}{6B7280}
 \definecolor{lsGrid}{HTML}{E5E7EB}
 \definecolor{lsInk}{HTML}{1F2937}
+\definecolor{lsRed}{HTML}{C2413A}
+\definecolor{lsGreen}{HTML}{2E8B57}
+% sechs gut unterscheidbare Farben für Einzelobjekte
+\definecolor{lsC1}{HTML}{2A6FDB}
+\definecolor{lsC2}{HTML}{E8833A}
+\definecolor{lsC3}{HTML}{2E8B57}
+\definecolor{lsC4}{HTML}{9B59B6}
+\definecolor{lsC5}{HTML}{C2413A}
+\definecolor{lsC6}{HTML}{8C6D31}
 
 % ---------------------------------------------------------------- Kürzel
 \newcommand{\Msun}{\ensuremath{M_\odot}}
@@ -46,5 +55,13 @@
   slacs95/.style={fill=lsBlue, fill opacity=0.20, draw=lsBlue!70!black, line width=0.5pt},
   forecast68/.style={fill=lsOrange, fill opacity=0.60, draw=lsOrange!70!black, line width=0.5pt},
   forecast95/.style={fill=lsOrange, fill opacity=0.22, draw=lsOrange!70!black, line width=0.5pt},
+  lens68/.style={fill=lsBlue, fill opacity=0.55, draw=lsBlue!70!black, line width=0.5pt},
+  lens95/.style={fill=lsBlue, fill opacity=0.20, draw=lsBlue!70!black, line width=0.5pt},
   reference/.style={lsInk, line width=0.6pt},
+}
+
+% Vergleichsbänder (frühes vs. spätes Universum), für \fill innerhalb von Achsen
+\tikzset{
+  bandEarly/.style={fill=lsRed, fill opacity=0.15, draw=none},
+  bandLate/.style={fill=lsGreen, fill opacity=0.15, draw=none},
 }
