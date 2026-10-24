@@ -55,7 +55,9 @@ def files_in_readme(readme: str) -> list[str]:
             if dashes == 3:
                 break
             continue
-        if dashes == 2 and line.strip():
+        # Dateinamen stehen am Zeilenanfang; eingerückte Zeilen setzen die
+        # Beschreibung der vorigen Datei fort.
+        if dashes == 2 and line.strip() and not line[0].isspace():
             name = line.split()[0]
             if name != "ReadMe" and not name.startswith("("):
                 names.append(name)
