@@ -19,6 +19,8 @@ dependencies = [
 [project.optional-dependencies]
 app = ["streamlit>=1.30"]
 dev = ["pytest>=7"]
+validate = ["lenstronomy>=1.11"]
+data = ["astroquery>=0.4.7"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
