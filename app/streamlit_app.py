@@ -17,6 +17,7 @@ from lenscape.raytrace import convergence_map, magnification_map, make_grid, ren
 from lenscape.solver import find_images
 from lenscape.sources import SersicSource
 from lenscape.strong_lenses import einstein_quantities
+from lenscape.timedelay import time_delays
 
 st.set_page_config(page_title="lenscape", page_icon="🔭", layout="wide")
 
@@ -196,6 +197,8 @@ def draw_curves(ax, curves, **kw):
 tab_names = ["Simulator", "Konvergenz & Vergrößerung", "Dunkle Energie & Kosmologie"]
 if HAVE_SLACS:
     tab_names.append("SLACS-Stichprobe")
+HAVE_H0LICOW = (DATA_DIR / "h0licow" / "J1206_final.csv").exists()
+tab_names.append("H₀ aus Zeitverzögerungen")
 tabs = st.tabs(tab_names)
 tab_sim, tab_maps, tab_de = tabs[:3]
 
@@ -227,15 +230,21 @@ with tab_sim:
 
     if len(images):
         st.markdown(f"**{len(images)} Bild(er)** der Quellmitte (grüne Kreise):")
-        st.dataframe(
-            {
-                "x [″]": np.round(images[:, 0], 4),
-                "y [″]": np.round(images[:, 1], 4),
-                "Vergrößerung μ": np.round(images[:, 2], 3),
-                "Parität": np.where(images[:, 2] > 0, "+", "− (gespiegelt)"),
-            },
-            hide_index=True,
-        )
+        table = {
+            "x [″]": np.round(images[:, 0], 4),
+            "y [″]": np.round(images[:, 1], 4),
+            "Vergrößerung μ": np.round(images[:, 2], 3),
+            "Parität": np.where(images[:, 2] > 0, "+", "− (gespiegelt)"),
+        }
+        try:
+            dt = time_delays(lens, geom, images, bx, by)
+            table["Ankunft nach dem 1. Bild [Tage]"] = np.round(dt, 2)
+        except NotImplementedError:
+            pass
+        st.dataframe(table, hide_index=True)
+        if len(images) > 1 and "Ankunft nach dem 1. Bild [Tage]" in table:
+            st.caption(f"Zeitverzögerungs-Distanz D_Δt = {geom.time_delay_distance().value:.0f} Mpc ∝ 1/H₀. "
+                       "Misst man die Verzögerungen an einem variablen Quasar, folgt daraus H₀.")
     st.caption("Kreuzt die Quelle eine Kaustik (blau, links), ändert sich die Bildanzahl um zwei; "
                "auf den kritischen Kurven (gestrichelt, rechts) entstehen die hellen Bögen.")
 
@@ -347,3 +356,74 @@ if HAVE_SLACS:
                                  "fDM_chab": "f_DM Chab", "fDM_salp": "f_DM Salp"}).round(3),
             hide_index=True, width="stretch",
         )
+
+
+@st.cache_resource(show_spinner="Lade H0LiCOW-Posteriors …")
+def h0licow_lenses():
+    from lenscape.h0licow import load_h0licow
+
+    return load_h0licow()
+
+
+@st.cache_data(show_spinner=False)
+def h0_marginals(names: tuple[str, ...], om_free: bool, om_fixed: float):
+    from lenscape.h0_inference import infer_h0
+
+    lenses = [l for l in h0licow_lenses() if l.name in names]
+    H0 = np.arange(50.0, 110.0001, 0.1)
+    Om = np.linspace(0.05, 0.5, 46) if om_free else np.array([om_fixed])
+    single = {l.name: infer_h0([l], H0=H0, Om=Om) for l in lenses}
+    joint = infer_h0(lenses, H0=H0, Om=Om)
+    return (H0, {k: (v.marginal_H0(), v.summary()) for k, v in single.items()},
+            (joint.marginal_H0(), joint.summary()))
+
+
+with tabs[-1]:
+    st.markdown(
+        "Licht der verschiedenen Bilder eines gelinsten Quasars kommt zu verschiedenen Zeiten an. "
+        "Aus gemessener Verzögerung und Linsenmodell folgt die **Zeitverzögerungs-Distanz** D_Δt ∝ 1/H₀, "
+        "unabhängig von der Entfernungsleiter und vom frühen Universum. Hier die sechs Linsen der "
+        "**H0LiCOW**-Kollaboration (Wong et al. 2020) mit ihren öffentlichen Distanz-Posteriors."
+    )
+    if not HAVE_H0LICOW:
+        st.info("Die H0LiCOW-Daten fehlen noch. Einmalig im Repo-Ordner ausführen: "
+                "`python scripts/fetch_h0licow.py` (~120 MB).")
+    else:
+        all_lenses = h0licow_lenses()
+        names = [l.name for l in all_lenses]
+        c1, c2 = st.columns([3, 1])
+        chosen = c1.multiselect("Linsen in der Kombination", names, default=names)
+        om_free = c2.toggle("Ωₘ frei (0,05–0,5)", value=True,
+                            help="Aus: Ωₘ wird auf den Wert aus der Seitenleiste festgesetzt")
+        if not chosen:
+            st.warning("Mindestens eine Linse auswählen.")
+        else:
+            H0g, single, (pj, (m, lo, hi)) = h0_marginals(tuple(chosen), om_free, float(Om0))
+            d1, d2, d3 = st.columns(3)
+            d1.metric("H₀ (Kombination) [km/s/Mpc]", f"{m:.1f} −{lo:.1f} +{hi:.1f}")
+            d2.metric("Abstand zu Planck (67,4 ± 0,5)", f"{abs(m - 67.4) / np.hypot((lo + hi) / 2, 0.5):.1f} σ")
+            d3.metric("Abstand zu SH0ES (73,04 ± 1,04)", f"{abs(m - 73.04) / np.hypot((lo + hi) / 2, 1.04):.1f} σ")
+
+            fig, ax = plt.subplots(figsize=(11, 4.2))
+            ax.axvspan(66.9, 67.9, color="#e57373", alpha=0.25, lw=0)
+            ax.axvspan(72.0, 74.08, color="#81c784", alpha=0.25, lw=0)
+            ax.text(67.4, 1.02, "Planck", color="#e57373", ha="center", transform=ax.get_xaxis_transform())
+            ax.text(73.04, 1.02, "SH0ES", color="#81c784", ha="center", transform=ax.get_xaxis_transform())
+            for name, (p, (mm, ll, hh)) in single.items():
+                ax.plot(H0g, p, lw=1, label=f"{name}: {mm:.1f} −{ll:.1f} +{hh:.1f}")
+            ax.plot(H0g, pj, color="white", lw=2.4, label=f"kombiniert: {m:.1f} −{lo:.1f} +{hi:.1f}")
+            ax.set_xlim(55, 100)
+            ax.set_ylim(0, None)
+            ax.set_yticks([])
+            ax.set_xlabel("H₀ [km/s/Mpc]")
+            ax.legend(fontsize=8, facecolor="#161b22", edgecolor="#333", loc="upper right")
+            ax.grid(alpha=0.2)
+            fig.tight_layout()
+            st.pyplot(fig)
+            plt.close(fig)
+            st.caption(
+                "Mit allen sechs Linsen und freiem Ωₘ reproduziert lenscape das veröffentlichte Ergebnis "
+                "73,3 +1,7 −1,8 km/s/Mpc. Lass einzelne Linsen weg und sieh, wie robust die Spannung ist, "
+                "z. B. ohne RXJ1131 oder PG1115. Vorbehalt: Das Ergebnis hängt an Annahmen über das radiale "
+                "Massenprofil (Massenblatt-Entartung); TDCOSMO 2025 lockert sie und findet 71,6 +3,9 −3,3."
+            )
