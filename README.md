@@ -27,6 +27,10 @@ Flächendichte Σ_crit = c²/(4πG) · D_s/(D_d D_ds).
 | `lenscape.raytrace` | Ray-Tracing mit Supersampling, Konvergenz- und Vergrößerungskarten |
 | `lenscape.caustics` | kritische Kurven und Kaustiken |
 | `lenscape.solver` | Bildpositionen und Vergrößerungen einer Punktquelle |
+| `lenscape.catalogs` | echte Linsenkataloge einlesen (SLACS, CDS/VizieR-Format) |
+| `lenscape.strong_lenses` | Einsteinmassen, σ_SIE, M/L und Anteil Dunkler Materie einer Stichprobe |
+| `lenscape.cosmography` | Ωₘ-w-Fit aus Einsteinradien und Geschwindigkeitsdispersionen |
+| `analysis/` | Auswerteskripte mit Ergebnissen und Abbildungen |
 | `app/` | interaktiver Simulator (Streamlit) |
 | `web/` | Nebenprojekt für die Website: eigenes Foto hochladen und verbiegen |
 
@@ -64,6 +68,28 @@ print(geom.mass_in_theta_E(geom.theta_E_sis(250)))   # M_sun innerhalb θ_E
 print(find_images(lens, 0.05, 0.03))                 # 4 Bilder: x, y, μ
 ```
 
+## Echte Daten: 63 SLACS-Linsen
+
+```bash
+python scripts/fetch_cds.py     # nur nötig, falls data/ fehlt
+python analysis/slacs.py        # Abbildungen nach figures/slacs/, Ergebnisse nach analysis/slacs_results.md
+```
+
+Was dabei herauskommt (Details in [`analysis/slacs_results.md`](analysis/slacs_results.md)):
+
+- **Validierung:** Die berechneten Einsteinmassen reproduzieren die publizierten Werte von Auger et al. (2009)
+  auf 0,004 dex (< 1 %).
+- **Isotherme Galaxien:** Sterngeschwindigkeiten und Linsenmasse passen zusammen,
+  ⟨σ_SDSS/σ_SIE⟩ ≈ 0,95 bei rund 10 % Streuung.
+- **Dunkle Materie:** Innerhalb des Einsteinradius (≈ 4 kpc) besteht etwa die Hälfte der Masse aus Dunkler
+  Materie (Chabrier-IMF). Mit der schwereren Salpeter-IMF wird sie bei einigen Galaxien negativ, die IMF ist dort
+  also zu schwer.
+- **Kosmologie:** Die Kosmographie aus 58 Linsen ist mit Planck-ΛCDM verträglich, schränkt w aber kaum ein.
+  Die Prognose zeigt, dass mit der Methode erst bei Tausenden Linsen (Euclid, LSST) brauchbare Grenzen entstehen.
+
+Im Simulator lässt sich jede SLACS-Linse auswählen („Echte Linse (SLACS)“). Ihr Einsteinradius ist beobachtet,
+die Kosmologie-Regler ändern daher die abgeleitete Masse und den Dunkle-Materie-Anteil.
+
 ## Web: Foto-Linse
 
 `web/index.html` ist eine einzelne Datei ohne Abhängigkeiten. Im Browser öffnen, Bild hochladen (oder per
@@ -84,8 +110,7 @@ analytische Bildpositionen und Vergrößerungen der SIS und M(<θ_E) = M für ei
 
 - [x] Simulator und Kosmologie (Punktmasse, SIS, SIE, NFW, Scherung, Kaustiken, Bildlöser)
 - [x] Web-Demo „eigenes Bild verbiegen“
-- [ ] **Starke Linsen aus echten Daten**: SLACS-Katalog laden, Massen und Dunkle-Materie-Anteil bestimmen
-      (Linsenmasse vs. Sternmasse)
+- [x] **Starke Linsen aus echten Daten**: SLACS-Katalog, Massen, Dunkle-Materie-Anteil, Kosmographie
 - [ ] **Galaxienhaufen**: Massenkarten der Hubble Frontier Fields einlesen, Mehrfachbilder vorhersagen
 - [ ] **Zeitverzögerungen**: gelinste Quasare → H₀ (Vergleich mit H0LiCOW/TDCOSMO)
 - [ ] **Modell-Fit**: SIE+Scherung an beobachtete Bildpositionen anpassen, Abgleich mit `lenstronomy`
