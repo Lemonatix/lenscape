@@ -1,0 +1,30 @@
+\documentclass[border=4pt]{standalone}
+\input{../lenscape-style}
+\input{data/macros}
+
+\begin{document}
+\begin{tikzpicture}
+  \begin{axis}[
+      lenscape,
+      width=8.6cm, height=7cm,
+      xmin=55, xmax=115, ymin=-2.5, ymax=0.5,
+      xtick distance=10, ytick distance=0.5,
+      /pgf/number format/fixed, /pgf/number format/precision=1,
+      xlabel={$H_0$ \quad [km\,s$^{-1}$\,Mpc$^{-1}$]},
+      ylabel={$w$},
+      title={Mit freier Dunkler Energie: $H_0$ und $w$ entartet},
+      axis on top,
+      legend pos=south east,
+    ]
+    \input{data/hw_regions.tex}
+    \addplot[lsGrey, dashed, forget plot] coordinates {(55,-1) (115,-1)};
+    \node[font=\scriptsize, text=lsGrey, anchor=south west] at (axis cs:56,-1) {$\Lambda$: $w=-1$};
+    \addlegendimage{area legend, lens68}\addlegendentry{68\,\%}
+    \addlegendimage{area legend, lens95}\addlegendentry{95\,\%}
+    \node[font=\scriptsize, text=lsInk, anchor=north west, fill=white, fill opacity=0.85, text opacity=1, align=left]
+      at (rel axis cs:0.03,0.97)
+      {H0LiCOW, flaches $w$CDM:\\
+       $H_0 = \pgfmathprintnumber[fixed,precision=1,fixed zerofill]{\hzerowmed}^{+\pgfmathprintnumber[fixed,precision=1,fixed zerofill]{\hzerowhi}}_{-\pgfmathprintnumber[fixed,precision=1,fixed zerofill]{\hzerowlo}}$};
+  \end{axis}
+\end{tikzpicture}
+\end{document}
