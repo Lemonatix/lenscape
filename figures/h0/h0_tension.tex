@@ -1,0 +1,53 @@
+\documentclass[border=4pt]{standalone}
+\input{../lenscape-style}
+\input{data/macros}
+\input{data/whisker_axis}
+
+\begin{document}
+\begin{tikzpicture}
+  \begin{axis}[
+      lenscape,
+      width=11cm, height=8.2cm,
+      whisker axis,
+      ymajorgrids=false,
+      xmin=58, xmax=92,
+      xtick distance=5,
+      xlabel={$H_0$ \quad [km\,s$^{-1}$\,Mpc$^{-1}$]},
+      title={Die Hubble-Spannung: Linsen, Sternenleiter und CMB},
+      y tick label style={font=\small},
+      clip=false,
+      title style={yshift=12pt},
+    ]
+    % Bänder: frühes Universum (Planck) und lokale Entfernungsleiter (SH0ES)
+    \fill[bandEarly] (axis cs:{\planckmed-\planckerr},0.4) rectangle (axis cs:{\planckmed+\planckerr},10.6);
+    \fill[bandLate]  (axis cs:{\shoesmed-\shoeserr},0.4) rectangle (axis cs:{\shoesmed+\shoeserr},10.6);
+    % Trennlinie zwischen Einzellinsen und Zusammenfassungen
+    \draw[lsGrey!60, densely dotted] (axis cs:58,4.5) -- (axis cs:92,4.5);
+
+    \addplot[only marks, mark=*, mark size=1.8pt, lsBlue,
+             error bars/.cd, x dir=both, x explicit, error bar style={lsBlue, line width=0.8pt}]
+      table[x=x, y=y, x error minus=em, x error plus=ep] {data/whisker_lens.dat};
+    \addplot[only marks, mark=diamond*, mark size=3.2pt, lsBlue!70!black,
+             error bars/.cd, x dir=both, x explicit, error bar style={lsBlue!70!black, line width=1.4pt}]
+      table[x=x, y=y, x error minus=em, x error plus=ep] {data/whisker_joint.dat};
+    \addplot[only marks, mark=square*, mark size=2pt, lsC4,
+             error bars/.cd, x dir=both, x explicit, error bar style={lsC4, line width=0.8pt}]
+      table[x=x, y=y, x error minus=em, x error plus=ep] {data/whisker_ref.dat};
+    \addplot[only marks, mark=triangle*, mark size=2.6pt, lsGreen,
+             error bars/.cd, x dir=both, x explicit, error bar style={lsGreen, line width=0.8pt}]
+      table[x=x, y=y, x error minus=em, x error plus=ep] {data/whisker_late.dat};
+    \addplot[only marks, mark=triangle*, mark size=2.6pt, lsRed,
+             error bars/.cd, x dir=both, x explicit, error bar style={lsRed, line width=0.8pt}]
+      table[x=x, y=y, x error minus=em, x error plus=ep] {data/whisker_early.dat};
+
+    % Werte rechts neben den Kombinationen
+    \node[font=\scriptsize, text=lsInk, anchor=west] at (axis cs:{\hzeromed+\hzerohi+0.8},4)
+      {$\pgfmathprintnumber[fixed,precision=1,fixed zerofill]{\hzeromed}^{+\pgfmathprintnumber[fixed,precision=1,fixed zerofill]{\hzerohi}}_{-\pgfmathprintnumber[fixed,precision=1,fixed zerofill]{\hzerolo}}$
+       \;(diese Rechnung)};
+    \node[font=\scriptsize, text=lsGrey, anchor=north east, align=right] at (rel axis cs:0.99,0.99)
+      {Abstand zu Planck: $\pgfmathprintnumber[fixed,precision=1]{\tensionplanck}\,\sigma$};
+    \node[font=\scriptsize, text=lsRed!80!black, anchor=south east] at (axis cs:{\planckmed+\planckerr},10.6) {frühes Universum};
+    \node[font=\scriptsize, text=lsGreen!70!black, anchor=south west] at (axis cs:{\shoesmed-\shoeserr},10.6) {spätes Universum};
+  \end{axis}
+\end{tikzpicture}
+\end{document}
