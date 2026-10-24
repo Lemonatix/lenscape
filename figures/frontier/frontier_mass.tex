@@ -1,0 +1,25 @@
+\documentclass[border=4pt]{standalone}
+\input{../lenscape-style}
+
+\begin{document}
+\begin{tikzpicture}
+  \begin{axis}[
+      lenscape,
+      xmin=0, xmax=300, ymin=0,
+      xlabel={Radius $R$ [kpc]},
+      ylabel={$M(<R)$ \quad [$10^{14}\,M_\odot$]},
+      title={Projizierte Masse: wie gut stimmen die Modelle überein?},
+      legend pos=north west,
+      /pgf/number format/fixed, /pgf/number format/precision=1,
+    ]
+    \addplot[lsBlue, line width=1.1pt] table[x=R, y=M] {data/mass_abell2744_cats.dat};
+    \addlegendentry{Abell 2744, CATS}
+    \addplot[lsBlue, line width=1.1pt, densely dashed] table[x=R, y=M] {data/mass_abell2744_glafic.dat};
+    \addlegendentry{Abell 2744, GLAFIC}
+    \addplot[lsOrange, line width=1.1pt] table[x=R, y=M] {data/mass_macs0416_cats.dat};
+    \addlegendentry{MACS J0416, CATS}
+    \addplot[lsOrange, line width=1.1pt, densely dashed] table[x=R, y=M] {data/mass_macs0416_glafic.dat};
+    \addlegendentry{MACS J0416, GLAFIC}
+  \end{axis}
+\end{tikzpicture}
+\end{document}
