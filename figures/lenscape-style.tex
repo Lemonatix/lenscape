@@ -1,0 +1,50 @@
+% Gemeinsamer Stil aller lenscape-Abbildungen (TikZ/pgfplots).
+% Einbinden mit \input{../lenscape-style} aus einem Abbildungsordner.
+
+% Schrift: Computer Modern (in jeder TeX-Installation vorhanden, passt zu LaTeX-Dokumenten).
+% Für Latin Modern: \usepackage[T1]{fontenc}\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots}
+\usetikzlibrary{calc}
+
+% ---------------------------------------------------------------- Farben
+\definecolor{lsBlue}{HTML}{2A6FDB}
+\definecolor{lsOrange}{HTML}{E8833A}
+\definecolor{lsGrey}{HTML}{6B7280}
+\definecolor{lsGrid}{HTML}{E5E7EB}
+\definecolor{lsInk}{HTML}{1F2937}
+
+% ---------------------------------------------------------------- Kürzel
+\newcommand{\Msun}{\ensuremath{M_\odot}}
+\newcommand{\thetaE}{\ensuremath{\theta_\mathrm{E}}}
+
+% ---------------------------------------------------------------- Achsenstil
+\pgfplotsset{
+  lenscape/.style={
+    width=8.6cm, height=5.8cm,
+    axis line style={lsGrey!80},
+    tick style={lsGrey!80},
+    every tick label/.append style={font=\small, text=lsInk},
+    label style={font=\small, text=lsInk},
+    title style={font=\small\bfseries, text=lsInk},
+    grid=major, major grid style={lsGrid, line width=0.4pt},
+    legend style={font=\footnotesize, draw=none, fill=white, fill opacity=0.85, text opacity=1},
+    legend cell align=left,
+    /pgf/number format/use comma,
+    scaled ticks=false,
+  },
+  lenscape wide/.style={lenscape, width=8.2cm, height=6.2cm},
+  % Datenpunkte
+  dataBlue/.style={only marks, mark=*, mark size=1.4pt, color=lsBlue, fill opacity=0.85,
+                   error bars/error bar style={lsBlue!60, line width=0.4pt}},
+  dataOrange/.style={only marks, mark=square*, mark size=1.3pt, color=lsOrange, fill opacity=0.85,
+                     error bars/error bar style={lsOrange!60, line width=0.4pt}},
+  % Konfidenzbereiche (68 % / 95 %) für echte Daten und Prognose
+  slacs68/.style={fill=lsBlue, fill opacity=0.55, draw=lsBlue!70!black, line width=0.5pt},
+  slacs95/.style={fill=lsBlue, fill opacity=0.20, draw=lsBlue!70!black, line width=0.5pt},
+  forecast68/.style={fill=lsOrange, fill opacity=0.60, draw=lsOrange!70!black, line width=0.5pt},
+  forecast95/.style={fill=lsOrange, fill opacity=0.22, draw=lsOrange!70!black, line width=0.5pt},
+  reference/.style={lsInk, line width=0.6pt},
+}
