@@ -118,7 +118,9 @@ damit 3,3σ über Planck. Im Simulator zeigt die Bildtabelle die Verzögerungen 
 ## Web: Foto-Linse
 
 `web/index.html` ist eine einzelne Datei ohne Abhängigkeiten. Im Browser öffnen, Bild hochladen (oder per
-Drag & Drop), Linse mit der Maus verschieben. Die Regler steuern Masse, Abstände, Bildbreite und die
+Drag & Drop), Linse mit der Maus verschieben. Gerechnet wird pro Pixel auf der Grafikkarte (WebGL2-Shader,
+mit CPU-Rückfall); als Linse stehen Punktmasse bzw. Schwarzes Loch und eine elliptische Galaxie (SIE) zur Wahl.
+Für die eigene Website lässt sich die Seite per `<iframe src="…/index.html?embed">` ohne Kopfzeile einbetten. Die Regler steuern Masse, Abstände, Bildbreite und die
 **Lichtgeschwindigkeit** (θ_E ∝ 1/c). Szenarien: Galaxie, Sonne wie bei Eddington 1919, dieselbe Sonne bei
 1 % von c, ein murmelgroßes Schwarzes Loch im Zimmer.
 
