@@ -73,4 +73,7 @@ def test_einstein_radius_numeric():
 
     assert einstein_radius(SIS(1.4)) == pytest.approx(1.4, rel=1e-8)
     assert einstein_radius(PointMass(0.8)) == pytest.approx(0.8, rel=1e-8)
-    assert np.isnan(einstein_radius(NFW(0.01, 5.0)))  # subkritischer Halo
+    # Kern mit zentraler Konvergenz < 1 -> kein Einsteinring
+    assert np.isnan(einstein_radius(SIE(1.0, q=1.0, s=1.0)))
+    # NFW: kappa divergiert logarithmisch im Zentrum -> immer ein (evtl. winziger) Einsteinradius
+    assert 0 < einstein_radius(NFW(0.01, 5.0)) < 1e-3
