@@ -33,7 +33,8 @@ def test_einstein_masses_match_auger2009(slacs):
 
 def test_einstein_radii_kpc_match_auger2009(slacs):
     m = np.isfinite(slacs["R_E_kpc_auger"])
-    np.testing.assert_allclose(slacs["R_E_kpc"][m], slacs["R_E_kpc_auger"][m], atol=0.01)
+    # theta_E ist auf 0.01" gerundet -> bis ~1 % Abweichung erwartet
+    np.testing.assert_allclose(slacs["R_E_kpc"][m], slacs["R_E_kpc_auger"][m], rtol=0.012)
 
 
 def test_stellar_fraction_consistent_with_auger2009(slacs):
