@@ -148,6 +148,24 @@ synthetischen Bildern findet der Fit θ_E auf besser als 0,1 % wieder; die Linse
 
 ![HST-Fit](figures/slacs_hst/hst_fit.svg)
 
+### Pixelierte Quellen und zweite Quellebene (J0946+1006, „Jackpot“)
+
+```bash
+python analysis/jackpot.py   # ~3 min; Ergebnisse in analysis/jackpot_results.md
+```
+
+`lenscape.pixsrc` rekonstruiert die Quelle frei auf einem Pixelgitter (Bayes'sche semi-lineare Inversion nach
+Suyu et al. 2006); die Regularisierungsstärke und die Linsenparameter folgen aus der Bayes-Evidenz. Für den
+inneren Ring sinkt χ²_red damit von 1,42 (glatte Sérsic-Quelle) auf 1,16.
+
+Der schwache äußere Ring gehört zu einer zweiten Quelle bei z = 2,035. Das Verhältnis
+η = (D_ds2/D_s2)/(D_ds1/D_s1) hängt nur von Ωₘ und w ab. Die Evidenz zeigt zwei Lösungen; die plausible
+(η = 1,46 bei isothermem Profil) reproduziert Gavazzi et al. (2008). Mit etwas Masse in Quelle 1 sinkt sie auf
+≈ 1,40, nahe an Collett & Auger (2014: 1,404 ± 0,016) und ΛCDM (1,388). Für eine echte Kosmologie-Aussage
+fehlen tiefere Daten und eine Einschränkung der Profilsteigung – die Abbildung zeigt, warum.
+
+![Jackpot](figures/jackpot/jackpot_eta.svg)
+
 ## Web: Foto-Linse
 
 `web/index.html` ist eine einzelne Datei ohne Abhängigkeiten. Im Browser öffnen, Bild hochladen (oder per
@@ -175,4 +193,6 @@ analytische Bildpositionen und Vergrößerungen der SIS und M(<θ_E) = M für ei
 - [x] **Zeitverzögerungen**: Fermat-Potential, H₀ aus den sechs H0LiCOW-Linsen
 - [x] **Modell-Fit**: SIE+Scherung direkt an HST-Bilder, Abgleich mit `lenstronomy`
 - [x] **Web-Demo** mit WebGL2 und Einbettungsmodus
+- [x] **Pixelierte Quellen** (Suyu et al. 2006) und **zweite Quellebene** des Jackpot-Systems
+- [ ] Elliptisches Potenzgesetz-Profil (freie Steigung γ′) für die Jackpot-Kosmologie
 - [ ] **Schwache Linsen**: Scherungskataloge bzw. Planck-CMB-Lensing-Karte, Ωₘ und σ₈
