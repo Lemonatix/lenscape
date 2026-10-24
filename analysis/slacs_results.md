@@ -26,7 +26,14 @@ Unsere Einsteinmassen weichen von den publizierten Werten (Auger et al. 2009) im
 - Planck-ΛCDM (Ωₘ = 0.3111, w = −1) liegt bei Δχ² = 0.90, also verträglich.
 - Variiert man w von −2 bis −0,4, ändern sich die Mediane der Massen um 6.3 %; für Ωₘ von 0,1 bis 0,6 um 0.4 %.
 
-![f_SIE](../figures/slacs/f_sie.png)
-![f_DM](../figures/slacs/f_dm.png)
-![Masse vs. Kosmologie](../figures/slacs/mass_vs_cosmology.png)
-![Kosmographie](../figures/slacs/cosmography.png)
+## Abbildungen
+
+Gebaut mit `python figures/build.py` (TikZ/pgfplots; PDF und SVG in `figures/slacs/`).
+
+![f_SIE](../figures/slacs/f_sie.svg)
+
+![f_DM](../figures/slacs/f_dm.svg)
+
+![Masse vs. Kosmologie](../figures/slacs/mass_vs_cosmology.svg)
+
+![Kosmographie](../figures/slacs/cosmography.svg)
