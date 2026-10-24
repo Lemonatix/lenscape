@@ -66,3 +66,11 @@ def test_composite_adds_up():
     a, b = SIS(1.0), ExternalShear(0.1, 0.0)
     total = (a + b).deflection(X, Y)
     np.testing.assert_allclose(total[0], a.deflection(X, Y)[0] + b.deflection(X, Y)[0])
+
+
+def test_einstein_radius_numeric():
+    from lenscape.lenses import einstein_radius
+
+    assert einstein_radius(SIS(1.4)) == pytest.approx(1.4, rel=1e-8)
+    assert einstein_radius(PointMass(0.8)) == pytest.approx(0.8, rel=1e-8)
+    assert np.isnan(einstein_radius(NFW(0.01, 5.0)))  # subkritischer Halo
