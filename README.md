@@ -29,6 +29,8 @@ Flächendichte Σ_crit = c²/(4πG) · D_s/(D_d D_ds).
 | `lenscape.solver` | Bildpositionen und Vergrößerungen einer Punktquelle |
 | `lenscape.catalogs` | echte Linsenkataloge einlesen (SLACS, CDS/VizieR-Format) |
 | `lenscape.strong_lenses` | Einsteinmassen, σ_SIE, M/L und Anteil Dunkler Materie einer Stichprobe |
+| `lenscape.timedelay` | Fermat-Potential und Zeitverzögerungen zwischen Bildern |
+| `lenscape.h0licow`, `lenscape.h0_inference` | die sechs H0LiCOW-Linsen und der H₀-Posterior |
 | `lenscape.cosmography` | Ωₘ-w-Fit aus Einsteinradien und Geschwindigkeitsdispersionen |
 | `analysis/` | Auswerteskripte mit Ergebnissen und Abbildungen |
 | `app/` | interaktiver Simulator (Streamlit) |
@@ -97,6 +99,22 @@ Was dabei herauskommt (Details in [`analysis/slacs_results.md`](analysis/slacs_r
 Im Simulator lässt sich jede SLACS-Linse auswählen („Echte Linse (SLACS)“). Ihr Einsteinradius ist beobachtet,
 die Kosmologie-Regler ändern daher die abgeleitete Masse und den Dunkle-Materie-Anteil.
 
+## H₀ aus Zeitverzögerungen (H0LiCOW)
+
+```bash
+python scripts/fetch_h0licow.py   # einmalig, öffentliche Distanz-Posteriors (~120 MB, nicht versioniert)
+python analysis/h0licow.py        # Ergebnisse nach analysis/h0licow_results.md
+python figures/build.py           # Abbildungen
+```
+
+Licht der Bilder eines gelinsten Quasars kommt zu unterschiedlichen Zeiten an. Aus Verzögerung und Linsenmodell
+folgt die Zeitverzögerungs-Distanz D_Δt ∝ 1/H₀. Mit den öffentlichen Posteriors der sechs H0LiCOW-Linsen
+reproduziert lenscape das veröffentlichte Ergebnis **H₀ = 73,3 +1,7 −1,8 km/s/Mpc** (Wong et al. 2020) und liegt
+damit 3,3σ über Planck. Im Simulator zeigt die Bildtabelle die Verzögerungen in Tagen; der Reiter
+„H₀ aus Zeitverzögerungen“ erlaubt, einzelne Linsen weg- oder hinzuzunehmen.
+
+![H0-Spannung](figures/h0/h0_tension.svg)
+
 ## Web: Foto-Linse
 
 `web/index.html` ist eine einzelne Datei ohne Abhängigkeiten. Im Browser öffnen, Bild hochladen (oder per
@@ -119,6 +137,6 @@ analytische Bildpositionen und Vergrößerungen der SIS und M(<θ_E) = M für ei
 - [x] Web-Demo „eigenes Bild verbiegen“
 - [x] **Starke Linsen aus echten Daten**: SLACS-Katalog, Massen, Dunkle-Materie-Anteil, Kosmographie
 - [ ] **Galaxienhaufen**: Massenkarten der Hubble Frontier Fields einlesen, Mehrfachbilder vorhersagen
-- [ ] **Zeitverzögerungen**: gelinste Quasare → H₀ (Vergleich mit H0LiCOW/TDCOSMO)
+- [x] **Zeitverzögerungen**: Fermat-Potential, H₀ aus den sechs H0LiCOW-Linsen
 - [ ] **Modell-Fit**: SIE+Scherung an beobachtete Bildpositionen anpassen, Abgleich mit `lenstronomy`
 - [ ] **Schwache Linsen**: Scherungskataloge bzw. Planck-CMB-Lensing-Karte, Ωₘ und σ₈
