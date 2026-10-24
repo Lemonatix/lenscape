@@ -28,6 +28,9 @@ def targets(args: list[str]) -> list[Path]:
 
 def build(tex: Path) -> bool:
     folder = tex.parent
+    if "{data/" in tex.read_text(encoding="utf-8") and not (folder / "data").exists():
+        print(f"--  {tex.relative_to(ROOT)}  übersprungen (keine Daten; erst die Auswertung laufen lassen)")
+        return True
     cmd = ["latexmk", "-pdf", "-interaction=nonstopmode", "-halt-on-error", "-outdir=build", tex.name]
     if not shutil.which("latexmk"):
         cmd = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", "-output-directory=build", tex.name]
