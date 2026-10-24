@@ -27,3 +27,6 @@ Thumbs.db
 
 # LaTeX-Hilfsdateien der Abbildungen
 figures/*/build/
+
+# H0LiCOW-Ketten (~120 MB, per scripts/fetch_h0licow.py)
+data/h0licow/
