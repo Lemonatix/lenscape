@@ -281,3 +281,26 @@ class NFW(Lens):
         _, _, _, xs = self._xr(x, y)
         xs = np.where(np.abs(xs - 1) < 1e-4, 1 + 1e-4, xs)
         return 2 * self.kappa_s * (1 - _nfw_F(xs)) / (xs**2 - 1)
+
+
+def einstein_radius(lens: Lens, r_max: float = 1e3) -> float:
+    """Einsteinradius einer (näherungsweise) kreissymmetrischen Linse.
+
+    Löst |alpha(theta)| = theta entlang der x-Achse, d.h. mittlere Konvergenz
+    innerhalb theta gleich 1. Gibt NaN zurück, wenn die Linse subkritisch ist.
+    """
+    from scipy.optimize import brentq
+
+    def g(r):
+        ax, ay = lens.deflection(r, 0.0)
+        return float(np.hypot(ax, ay)) - r
+
+    r_min = 1e-6
+    if g(r_min) <= 0:
+        return float("nan")
+    r_hi = r_min
+    while g(r_hi) > 0:
+        r_hi *= 2
+        if r_hi > r_max:
+            return float("nan")
+    return float(brentq(g, r_hi / 2, r_hi, xtol=1e-10))
