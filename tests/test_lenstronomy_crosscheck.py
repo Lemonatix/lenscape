@@ -1,6 +1,6 @@
-"""Abgleich mit lenstronomy (Birrer & Amara 2018), dem Standardwerkzeug der Community.
+"""Cross-check against lenstronomy (Birrer & Amara 2018), the community's standard tool.
 
-Läuft nur, wenn lenstronomy installiert ist: pip install -e ".[validate]"
+Runs only if lenstronomy is installed: pip install -e ".[validate]"
 """
 
 import numpy as np
@@ -28,7 +28,7 @@ def test_sie_and_shear_match_lenstronomy():
     bx, by = ours.deflection(X, Y)
     np.testing.assert_allclose(bx, ax, atol=1e-8)
     np.testing.assert_allclose(by, ay, atol=1e-8)
-    # Potential bis auf eine Konstante gleich -> gleiche Zeitverzögerungen
+    # potential equal up to a constant -> identical time delays
     d = lm.potential(X, Y, kw) - ours.potential(X, Y)
     assert np.ptp(d) < 1e-8
 
