@@ -1,17 +1,16 @@
-"""Likelihoods für gemessene Distanzen (D_dt und optional D_d) einzelner Linsen.
+"""Likelihoods for measured distances (D_dt and optionally D_d) of individual lenses.
 
-Die Linsenmodellierung liefert Posterior-Verteilungen der Distanzen. Um eine
-Kosmologie zu bewerten, braucht man ihre Dichte an der von der Kosmologie
-vorhergesagten Stelle. Wie bei H0LiCOW (Wong et al. 2020, Code von Bonvin &
-Millon) gibt es drei Formen:
+Lens modelling yields posterior distributions of the distances. To evaluate a
+cosmology one needs their density at the point the cosmology predicts. As in
+H0LiCOW (Wong et al. 2020, code by Bonvin & Millon) there are three forms:
 
-* schiefe Log-Normalverteilung (analytischer Fit, z. B. B1608+656)
-* 1D-Kerndichteschätzer auf D_dt-Samples (GLEE-Analysen)
-* 2D-Kerndichteschätzer auf (D_d, D_dt)-Samples (lenstronomy-Analysen)
+* skewed log-normal distribution (analytic fit, e.g. B1608+656)
+* 1D kernel density estimate on D_dt samples (GLEE analyses)
+* 2D kernel density estimate on (D_d, D_dt) samples (lenstronomy analyses)
 
-Die Kerndichten werden auf einem gebinnten Gitter berechnet (Histogramm, dann
-Gauß-Glättung) und interpoliert -- das ist dieselbe Idee wie die "kde_hist"-
-Variante von H0LiCOW, aber vektorisiert und damit schnell genug für Gitterscans.
+The kernel densities are computed on a binned grid (histogram, then Gaussian
+smoothing) and interpolated -- the same idea as the "kde_hist" variant of
+H0LiCOW, but vectorized and therefore fast enough for grid scans.
 """
 
 from __future__ import annotations
@@ -27,7 +26,7 @@ _NEG = -np.inf
 
 @dataclass
 class SkewLogNormal:
-    """p(x) = LogNormal(x - lam; mu, sigma) für x > lam."""
+    """p(x) = LogNormal(x - lam; mu, sigma) for x > lam."""
 
     mu: float
     sigma: float
@@ -44,13 +43,13 @@ class SkewLogNormal:
 
 
 class KDE1D:
-    """Gebinnte Gauß-Kerndichte einer (gewichteten) Stichprobe."""
+    """Binned Gaussian kernel density of a (weighted) sample."""
 
     def __init__(self, samples, weights=None, bandwidth: float = 20.0, nbins: int = 400, pad: float = 6.0):
         samples = np.asarray(samples, dtype=float)
         lo = samples.min() - pad * bandwidth
         hi = samples.max() + pad * bandwidth
-        # feines Gitter: mindestens 4 Punkte pro Bandbreite
+        # fine grid: at least 4 points per bandwidth
         n = max(nbins, int((hi - lo) / bandwidth * 4))
         hist, edges = np.histogram(samples, bins=n, range=(lo, hi), weights=weights, density=True)
         dx = edges[1] - edges[0]
@@ -66,7 +65,7 @@ class KDE1D:
 
 
 class KDE2D:
-    """Gebinnte Gauß-Kerndichte in (D_d, D_dt)."""
+    """Binned Gaussian kernel density in (D_d, D_dt)."""
 
     def __init__(self, dd, ddt, weights=None, bandwidth=(20.0, 20.0), nbins: int = 80, pad: float = 6.0):
         dd = np.asarray(dd, dtype=float)
@@ -74,7 +73,7 @@ class KDE2D:
         bw = np.broadcast_to(np.asarray(bandwidth, dtype=float), (2,))
         rng = [(dd.min() - pad * bw[0], dd.max() + pad * bw[0]),
                (ddt.min() - pad * bw[1], ddt.max() + pad * bw[1])]
-        # Gitter fein genug für die Bandbreite, aber mindestens nbins pro Achse
+        # grid fine enough for the bandwidth, but at least nbins per axis
         n = [max(nbins, int((r[1] - r[0]) / b * 3)) for r, b in zip(rng, bw)]
         n = [min(k, 1500) for k in n]
         hist, ed, et = np.histogram2d(dd, ddt, bins=n, range=rng, weights=weights, density=True)
@@ -96,6 +95,6 @@ class KDE2D:
 
 
 def scott_bandwidth(samples, n_dim: int) -> float:
-    """Scotts Regel wie in scipy.stats.gaussian_kde: sigma * n^(-1/(d+4))."""
+    """Scott's rule as in scipy.stats.gaussian_kde: sigma * n^(-1/(d+4))."""
     samples = np.asarray(samples, dtype=float)
     return float(np.std(samples, ddof=1) * len(samples) ** (-1.0 / (n_dim + 4)))
