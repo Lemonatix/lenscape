@@ -10,7 +10,7 @@ venv/
 .pytest_cache/
 .ipynb_checkpoints/
 
-# Daten (große Kataloge/Karten werden nicht eingecheckt)
+# data (large catalogues/maps are not checked in)
 data/raw/
 data/cache/
 *.fits
@@ -25,12 +25,12 @@ Thumbs.db
 # Streamlit
 .streamlit/secrets.toml
 
-# LaTeX-Hilfsdateien der Abbildungen
+# LaTeX auxiliary files of the figures
 figures/*/build/
 
-# H0LiCOW-Ketten (~120 MB, per scripts/fetch_h0licow.py)
+# H0LiCOW chains (~120 MB, via scripts/fetch_h0licow.py)
 data/h0licow/
 
-# große Archivdaten (Frontier-Fields-Karten, volle HST-Bilder)
+# large archive data (Frontier Fields maps, full HST images)
 data/frontier/
 !data/slacs_hst/*.fits
