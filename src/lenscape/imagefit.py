@@ -206,7 +206,7 @@ def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E
     lo, hi = _bounds(LIGHT_, p)
     sol = least_squares(residual_fn(LIGHT_, mask, use_source=False), _vec(p, LIGHT_), bounds=(lo, hi), x_scale="jac")
     p.update(zip(LIGHT_, sol.x))
-    hist.append(("Licht", 2 * sol.cost))
+    hist.append(("light", 2 * sol.cost))
     if verbose:
         print("stage 1 (light):", {k: round(p[k], 3) for k in LIGHT_})
 
@@ -226,14 +226,14 @@ def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E
         if verbose:
             print(f"stage 2, start {k}: chi2 = {2 * sol.cost:.1f}, thetaE = {sol.x[MS_.index("thetaE")]:.3f}")
     p.update(zip(MS_, best.x))
-    hist.append(("Masse+Quelle", 2 * best.cost))
+    hist.append(("mass+source", 2 * best.cost))
 
     # ---- stage 3: everything jointly
     lo, hi = _bounds(ALL_, p)
     sol = least_squares(residual_fn(ALL_), np.clip(_vec(p, ALL_), lo + 1e-6, hi - 1e-6),
                         bounds=(lo, hi), x_scale="jac", max_nfev=600)
     p.update(zip(ALL_, sol.x))
-    hist.append(("gemeinsam", 2 * sol.cost))
+    hist.append(("joint", 2 * sol.cost))
 
     L, S, b, amps = model.solve_linear(p, data, w)
     m = L + S + b
