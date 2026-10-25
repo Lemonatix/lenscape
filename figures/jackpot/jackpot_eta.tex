@@ -12,10 +12,10 @@
       ytick distance=0.05,
       /pgf/number format/fixed, /pgf/number format/precision=2,
     ]
-    % ---------------- links: Kosmologie
+    % ---------------- left: cosmology
     \nextgroupplot[
-      title={Was $\eta$ über Dunkle Energie verrät},
-      xlabel={$w$ \quad (flach, $\Omega_\mathrm{m}=0{,}315$)},
+      title={What $\eta$ reveals about dark energy},
+      xlabel={$w$ \quad (flat, $\Omega_\mathrm{m}=0.315$)},
       ylabel={$\eta = \dfrac{D_\mathrm{ds_2}/D_\mathrm{s_2}}{D_\mathrm{ds_1}/D_\mathrm{s_1}}$},
       xmin=-2.5, xmax=0, xtick distance=0.5, ymin=1.08,
       legend style={at={(0.02,0.02)}, anchor=south west, font=\scriptsize},
@@ -23,31 +23,31 @@
     \fill[lsBlue, opacity=0.18] (axis cs:-2.5,{\etaiso-\etasys}) rectangle (axis cs:0,{\etaiso+\etasys});
     \fill[lsC4, opacity=0.25] (axis cs:-2.5,{\etaca-\etacaerr}) rectangle (axis cs:0,{\etaca+\etacaerr});
     \addplot[lsInk, line width=1.2pt] table[x=w, y=eta] {data/eta_vs_w.dat};
-    \addlegendentry{Vorhersage für $z_\mathrm{s_2}=2{,}035$}
+    \addlegendentry{prediction for $z_\mathrm{s_2}=2.035$}
     \addplot[lsBlue, line width=0.9pt] coordinates {(-2.5,\etaiso) (0,\etaiso)};
-    \addlegendentry{lenscape: isotherm, Lösung A}
+    \addlegendentry{lenscape: isothermal, solution A}
     \addplot[lsBlue, densely dashed, line width=0.8pt] coordinates {(-2.5,\etabone) (0,\etabone)};
-    \addlegendentry{\dots\ mit Masse von Quelle 1 ($b=0{,}1''$)}
+    \addlegendentry{\dots\ with mass of source 1 ($b=0.1''$)}
     \addplot[lsBlue, densely dotted, line width=0.8pt] coordinates {(-2.5,\etalow) (0,\etalow)};
-    \addlegendentry{lenscape: Lösung B}
+    \addlegendentry{lenscape: solution B}
     \addplot[lsC4, line width=0.9pt] coordinates {(-2.5,\etaca) (0,\etaca)};
     \addlegendentry{Collett \& Auger (2014)}
     \addplot[only marks, mark=star, mark size=3.5pt, lsInk] coordinates {(-1,\etalcdm)};
     \addlegendentry{$\Lambda$CDM}
 
-    % ---------------- rechts: Abhängigkeit von der Profilsteigung
+    % ---------------- right: dependence on the profile slope
     \nextgroupplot[
-      title={\dots\ und warum die Profilsteigung entscheidet},
-      xlabel={Steigung $\gamma'$ des Dichteprofils ($\rho \propto r^{-\gamma'}$)},
+      title={\dots\ and why the profile slope matters},
+      xlabel={Slope $\gamma'$ of the density profile ($\rho \propto r^{-\gamma'}$)},
       xmin=1.8, xmax=2.2, xtick distance=0.1,
       legend style={at={(0.02,0.98)}, anchor=north west, font=\scriptsize},
     ]
     \addplot[lsBlue, line width=1.1pt] table[x=gamma, y=eta] {data/eta_vs_gamma.dat};
-    \addlegendentry{$\eta = (\theta_\mathrm{E_2}/\theta_\mathrm{E_1})^{\gamma'-1}$, Lösung A}
+    \addlegendentry{$\eta = (\theta_\mathrm{E_2}/\theta_\mathrm{E_1})^{\gamma'-1}$, solution A}
     \addplot[lsInk, densely dashed, line width=0.8pt] coordinates {(1.8,\etalcdm) (2.2,\etalcdm)};
     \addlegendentry{$\Lambda$CDM}
     \addplot[lsGrey, dotted, forget plot] coordinates {(2,1.25) (2,1.52)};
-    \node[font=\scriptsize, text=lsGrey, anchor=south west, rotate=90] at (axis cs:2.008,1.26) {isotherm};
+    \node[font=\scriptsize, text=lsGrey, anchor=south west, rotate=90] at (axis cs:2.008,1.26) {isothermal};
     \addplot[only marks, mark=*, mark size=2pt, lsInk, forget plot] coordinates {(\gammalcdm,\etalcdm)};
     \node[font=\scriptsize, text=lsInk, anchor=north west] at (axis cs:\gammalcdm,\etalcdm)
       {$\gamma' = \pgfmathprintnumber[fixed,precision=2]{\gammalcdm}$};
