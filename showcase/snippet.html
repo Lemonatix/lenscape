@@ -1,0 +1,36 @@
+<!-- lenscape project section: adapt classes and paths to the website.
+     Assumes this folder is uploaded to /projects/lenscape/. -->
+
+<!-- in <head>, for link previews -->
+<meta property="og:title" content="lenscape – modelling gravitational lenses with real data">
+<meta property="og:description" content="Interactive gravitational-lensing simulator and Python toolkit: Einstein rings, dark matter and the Hubble constant from public telescope data.">
+<meta property="og:image" content="/projects/lenscape/cover.jpg">
+
+<section class="project" id="lenscape">
+  <h2>lenscape: modelling gravitational lenses with real data</h2>
+  <p>A Python toolkit and interactive simulator for gravitational lensing that measures real galaxies,
+     galaxy clusters and the expansion rate of the universe from public telescope data.</p>
+
+  <!-- the embedded demo is ~840 px tall on wide screens; below 900 px width the controls move under the image -->
+  <style>
+    .lenscape-demo { width: 100%; height: 860px; border: 0; border-radius: 10px; }
+    @media (max-width: 900px) { .lenscape-demo { height: 1380px; } }
+  </style>
+  <iframe class="lenscape-demo" src="/projects/lenscape/demo/index.html?embed" title="lenscape photo lens"
+          loading="lazy"></iframe>
+
+  <figure>
+    <img src="/projects/lenscape/figures/jackpot-two-source-planes.svg"
+         alt="Hubble image of SDSS J0946+1006 with two Einstein rings, the lenscape model and both reconstructed sources"
+         loading="lazy" style="width: 100%;">
+    <figcaption>SDSS J0946+1006 ("Jackpot"): Hubble image, lens model and the two reconstructed source galaxies.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="/projects/lenscape/screenshots/app-simulator.webp" alt="The lenscape simulator" loading="lazy" style="width: 100%;">
+    <figcaption>The interactive simulator (Streamlit).</figcaption>
+  </figure>
+
+  <p><a href="https://github.com/Lemonatix/lenscape">Code on GitHub</a> ·
+     <a href="/projects/lenscape/demo/index.html">Open the photo lens</a></p>
+</section>
