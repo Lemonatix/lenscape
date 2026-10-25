@@ -50,7 +50,7 @@ def test_sis_time_delay_analytic():
     dt = time_delays(SIS(thE), geom, imgs, beta, 0.0)
     expected = time_delay_days(geom, 2 * beta * thE)
     assert dt.max() == pytest.approx(expected, rel=1e-6)
-    # das Bild außerhalb des Einsteinrings kommt zuerst an
+    # the image outside the Einstein ring arrives first
     assert imgs[np.argmin(dt), 0] > 0
 
 
