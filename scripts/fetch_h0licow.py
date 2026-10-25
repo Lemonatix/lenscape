@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Lädt die öffentlichen H0LiCOW-Distanz-Posteriors nach data/h0licow/.
+"""Download the public H0LiCOW distance posteriors to data/h0licow/.
 
     python scripts/fetch_h0licow.py
 
-Quelle: https://github.com/shsuyu/H0LiCOW-public (Ordner h0licow_distance_chains).
-Zusammen rund 120 MB; die Dateien werden deshalb nicht versioniert.
-Bitte bei Verwendung die im README des H0LiCOW-Repos genannten Arbeiten zitieren
-(Wong et al. 2020, MNRAS 498, 1420 und die Einzelanalysen der Linsen).
+Source: https://github.com/shsuyu/H0LiCOW-public (folder h0licow_distance_chains).
+About 120 MB in total, so the files are not version-controlled.
+When using them, please cite the papers listed in the README of the H0LiCOW
+repository (Wong et al. 2020, MNRAS 498, 1420 and the individual lens analyses).
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-COMMIT = "57cf97357e16a94ba0065472bd4185cfbc604aa3"  # festgelegte Version für Reproduzierbarkeit
+COMMIT = "57cf97357e16a94ba0065472bd4185cfbc604aa3"  # pinned version for reproducibility
 BASE = f"https://raw.githubusercontent.com/shsuyu/H0LiCOW-public/{COMMIT}/h0licow_distance_chains/"
 FILES = [
     "HE0435_Ddt_AO+HST.dat",
@@ -32,10 +32,10 @@ def main() -> int:
     for name in FILES:
         target = OUT / name
         if target.exists() and target.stat().st_size > 0:
-            print(f"  {name}: vorhanden")
+            print(f"  {name}: present")
             continue
         url = BASE + urllib.request.quote(name)
-        print(f"  {name}: lade …", end="", flush=True)
+        print(f"  {name}: downloading …", end="", flush=True)
         req = urllib.request.Request(url, headers={"User-Agent": "lenscape-fetch/0.1"})
         with urllib.request.urlopen(req, timeout=300) as r:
             data = r.read()
