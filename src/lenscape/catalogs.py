@@ -1,12 +1,11 @@
-"""Einlesen echter Linsenkataloge (CDS/VizieR-Format).
+"""Reading real lens catalogues (CDS/VizieR format).
 
-Die Rohdateien lädt ``scripts/fetch_cds.py`` nach ``data/<katalog>/``. Jede
-Tabelle wird über die mitgelieferte ReadMe (Byte-genaue Spaltenbeschreibung)
-gelesen.
+``scripts/fetch_cds.py`` downloads the raw files to ``data/<catalogue>/``.
+Each table is read via the accompanying ReadMe (byte-exact column description).
 
 SLACS (Sloan Lens ACS Survey):
-    Bolton et al. 2008, ApJ 682, 964  (J/ApJ/682/964)  -- SIE-Modelle, z, sigma
-    Auger et al. 2009, ApJ 705, 1099  (J/ApJ/705/1099) -- Sternmassen
+    Bolton et al. 2008, ApJ 682, 964  (J/ApJ/682/964)  -- SIE models, z, sigma
+    Auger et al. 2009, ApJ 705, 1099  (J/ApJ/705/1099) -- stellar masses
 """
 
 from __future__ import annotations
@@ -20,14 +19,14 @@ from astropy.table import Table, join
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
-# Kosmologie, mit der SLACS Leuchtkräfte und physikalische Radien angibt
+# cosmology in which SLACS quotes luminosities and physical radii
 SLACS_REF_COSMO = dict(H0=70.0, Om0=0.3, Ode0=0.7, w0=-1.0)
 
 
 def read_cds(folder: Path | str, table: str) -> Table:
     folder = Path(folder)
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # Einheiten wie '----' sind harmlos
+        warnings.simplefilter("ignore")  # units like '----' are harmless
         return ascii.read(folder / table, readme=folder / "ReadMe", format="cds")
 
 
@@ -36,13 +35,13 @@ def _filled(col, fill=np.nan):
 
 
 def load_slacs(data_dir: Path | str | None = None, with_auger: bool = True) -> Table:
-    """Die 63 Grade-A-Linsen aus Bolton et al. (2008) mit SIE-Modell.
+    """The 63 grade-A lenses from Bolton et al. (2008) with SIE models.
 
-    Spalten (vereinheitlicht):
-        name, z_d, z_s, sigma, e_sigma [km/s], theta_E [arcsec, SIE, Zwischenachse],
-        q, pa [deg], r_e [arcsec], L_V [10^9 L_sun], f_L_E (Lichtanteil in theta_E),
+    Columns (harmonized):
+        name, z_d, z_s, sigma, e_sigma [km/s], theta_E [arcsec, SIE, intermediate axis],
+        q, pa [deg], r_e [arcsec], L_V [10^9 L_sun], f_L_E (light fraction inside theta_E),
         morph, ring, good_sigma
-    und, falls vorhanden, aus Auger et al. (2009):
+    and, if available, from Auger et al. (2009):
         logM_E_auger, R_E_kpc_auger, fstar_chab, e_fstar_chab, fstar_salp, e_fstar_salp,
         logMstar_chab, e_logMstar_chab, logMstar_salp, e_logMstar_salp
     """
@@ -51,7 +50,7 @@ def load_slacs(data_dir: Path | str | None = None, with_auger: bool = True) -> T
     t4 = read_cds(b, "table4.dat")
     t5 = read_cds(b, "table5.dat")
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # abweichende Spaltenbeschreibungen beim Join
+        warnings.simplefilter("ignore")  # differing column descriptions when joining
         tab = join(t4, t5, keys="Name", join_type="inner")
 
     out = Table()
