@@ -1,10 +1,10 @@
-"""SLACS-Auswertung: Massen, Dunkle Materie und Kosmologie aus 63 echten Linsen.
+"""SLACS analysis: masses, dark matter and cosmology from 63 real lenses.
 
-    python analysis/slacs.py          # rechnen + Datentabellen schreiben
-    python figures/build.py           # TikZ/pgfplots-Abbildungen bauen (PDF + SVG)
+    python analysis/slacs.py          # compute + write data tables
+    python figures/build.py           # build the TikZ/pgfplots figures (PDF + SVG)
 
-Die Rechnung schreibt nur Daten (figures/slacs/data/*.dat). Wie sie aussehen,
-legen die pgfplots-Dateien in figures/slacs/*.tex fest.
+The computation only writes data (figures/slacs/data/*.dat). How it looks is
+defined by the pgfplots files in figures/slacs/*.tex.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "figures" / "slacs" / "data"
 DATA.mkdir(parents=True, exist_ok=True)
 
-DCHI2_LEVELS = {"68": 2.30, "95": 6.17}  # zwei Parameter
+DCHI2_LEVELS = {"68": 2.30, "95": 6.17}  # two parameters
 
 
 def write_table(name: str, header: list[str], *cols, fmt="%.6g") -> None:
@@ -34,17 +34,17 @@ def write_table(name: str, header: list[str], *cols, fmt="%.6g") -> None:
 
 
 def write_scalars(name: str, values: dict[str, float]) -> None:
-    """Einzelwerte als pgf-Makros, z. B. \\def\\fsiemean{0.952}."""
+    """Single values as pgf macros, e.g. \\def\\fsiemean{0.952}."""
     lines = [f"\\def\\{k}{{{v:.4g}}}" for k, v in values.items()]
     (DATA / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-# ----------------------------------------------------------------- Exporte
+# ----------------------------------------------------------------- exports
 def export_fsie(t) -> dict:
     f = np.asarray(t["f_SIE"][t["good_sigma"]])
     edges = np.arange(0.66, 1.30, 0.04)
     counts, _ = np.histogram(f, bins=edges)
-    # pgfplots "ybar interval": letzte Zeile wiederholt den Zählwert am rechten Rand
+    # pgfplots "ybar interval": the last row repeats the count at the right edge
     write_table("f_sie_hist.dat", ["left", "count"], edges, np.append(counts, counts[-1]))
     return {"fsiemean": f.mean(), "fsieerr": f.std(ddof=1) / np.sqrt(len(f)), "fsiestd": f.std(ddof=1),
             "fsien": len(f), "fsieymax": counts.max() + 6}
@@ -72,7 +72,7 @@ def export_mass_vs_cosmology(t) -> dict:
 
 
 def export_contours(res, tag: str) -> list[str]:
-    """Gefüllte Δχ²-Bereiche als Polygone; Rückgabe: Liste der Dateinamen je Niveau."""
+    """Filled Δχ² regions as polygons; returns the list of file names per level."""
     d = res.delta_chi2()
     gen = contourpy.contour_generator(res.Om, res.w, d, fill_type=contourpy.FillType.OuterOffset)
     files = []
@@ -86,7 +86,7 @@ def export_contours(res, tag: str) -> list[str]:
 
 
 def forecast(t, n_lenses, seed=1):
-    """Synthetische Stichprobe wie SLACS (gleiche z-Verteilung), Wahrheit = Planck-ΛCDM."""
+    """Synthetic sample like SLACS (same z distribution), truth = Planck ΛCDM."""
     rng = np.random.default_rng(seed)
     idx = rng.integers(0, len(t), n_lenses)
     z_d = np.asarray(t["z_d"])[idx]
@@ -95,7 +95,7 @@ def forecast(t, n_lenses, seed=1):
     e_sigma = np.asarray(t["e_sigma"])[idx]
     ratio = model_distance_ratio(z_d, z_s, PLANCK18_OM0, -1.0)
     theta = 4 * np.pi * (sigma / 299792.458) ** 2 * ratio / (np.pi / 180 / 3600)
-    theta *= np.exp(rng.normal(0, 0.15, n_lenses))  # intrinsische Streuung wie bei SLACS gemessen
+    theta *= np.exp(rng.normal(0, 0.15, n_lenses))  # intrinsic scatter as measured for SLACS
     return fit_flat_wcdm(theta, sigma, e_sigma, z_d, z_s, e_theta_frac=0.02,
                          sigma_int=np.linspace(0.1, 0.2, 11))
 
@@ -106,10 +106,10 @@ def export_cosmography(t) -> tuple[dict, object]:
     fc = forecast(g, 2000)
     files = {"slacs": export_contours(res, "slacs"), "forecast": export_contours(fc, "forecast")}
 
-    # pgfplots-Befehle für die (je nach Daten unterschiedlich vielen) Polygone
+    # pgfplots commands for the polygons (their number depends on the data)
     for tag, lst in files.items():
         cmds = [f"\\addplot[{tag}{lvl}, forget plot] table {{data/{name}}} -- cycle;" for lvl, name in
-                sorted(lst, key=lambda p: -int(p[0]))]  # 95 % zuerst, 68 % darüber
+                sorted(lst, key=lambda p: -int(p[0]))]  # 95 % first, 68 % on top
         (DATA / f"cosmo_{tag}_regions.tex").write_text("\n".join(cmds) + "\n", encoding="utf-8")
 
     d = res.delta_chi2()
@@ -137,43 +137,43 @@ def main():
     dlog = np.log10(t["M_E"][m]) - t["logM_E_auger"][m]
 
     lines = [
-        "# SLACS-Auswertung",
+        "# SLACS analysis",
         "",
-        "Automatisch erzeugt von `analysis/slacs.py`. Referenzkosmologie: H₀ = 70, Ωₘ = 0,3, Ω_Λ = 0,7.",
+        "Generated automatically by `analysis/slacs.py`. Reference cosmology: H₀ = 70, Ωₘ = 0.3, Ω_Λ = 0.7.",
         "",
-        "## Kennzahlen",
+        "## Key numbers",
         "",
-        "| Größe | Wert |",
+        "| Quantity | Value |",
         "|---|---|",
     ]
     for k, v in s.items():
         lines.append(f"| {k} | {v:.4g} |")
     lines += [
         "",
-        "## Validierung",
+        "## Validation",
         "",
-        f"Unsere Einsteinmassen weichen von den publizierten Werten (Auger et al. 2009) im Mittel um "
-        f"{dlog.mean():+.4f} dex ab (Streuung {dlog.std():.4f} dex, {m.sum()} Linsen).",
+        f"Our Einstein masses differ from the published values (Auger et al. 2009) by "
+        f"{dlog.mean():+.4f} dex on average (scatter {dlog.std():.4f} dex, {m.sum()} lenses).",
         "",
-        "## Kosmologie",
+        "## Cosmology",
         "",
-        f"- Bestfit (flaches wCDM): Ωₘ = {best['Om']:.2f}, w = {best['w']:.2f}, "
-        f"f_E = {best['f_E']:.3f}, intrinsische Streuung {best['sigma_int']:.2f}",
-        f"- Planck-ΛCDM (Ωₘ = {PLANCK18_OM0}, w = −1) liegt bei Δχ² = {cs['dchiplanck']:.2f}, also verträglich.",
-        f"- Variiert man w von −2 bis −0,4, ändern sich die Mediane der Massen um {scalars['massspanw']:.1f} %; "
-        f"für Ωₘ von 0,1 bis 0,6 um {scalars['massspanom']:.1f} %.",
+        f"- Best fit (flat wCDM): Ωₘ = {best['Om']:.2f}, w = {best['w']:.2f}, "
+        f"f_E = {best['f_E']:.3f}, intrinsic scatter {best['sigma_int']:.2f}",
+        f"- Planck ΛCDM (Ωₘ = {PLANCK18_OM0}, w = −1) lies at Δχ² = {cs['dchiplanck']:.2f}, i.e. consistent.",
+        f"- Varying w from −2 to −0.4 changes the median masses by {scalars['massspanw']:.1f} %; "
+        f"varying Ωₘ from 0.1 to 0.6 by {scalars['massspanom']:.1f} %.",
         "",
-        "## Abbildungen",
+        "## Figures",
         "",
-        "Gebaut mit `python figures/build.py` (TikZ/pgfplots; PDF und SVG in `figures/slacs/`).",
+        "Built with `python figures/build.py` (TikZ/pgfplots; PDF and SVG in `figures/slacs/`).",
         "",
         "![f_SIE](../figures/slacs/f_sie.svg)",
         "",
         "![f_DM](../figures/slacs/f_dm.svg)",
         "",
-        "![Masse vs. Kosmologie](../figures/slacs/mass_vs_cosmology.svg)",
+        "![Mass vs. cosmology](../figures/slacs/mass_vs_cosmology.svg)",
         "",
-        "![Kosmographie](../figures/slacs/cosmography.svg)",
+        "![Cosmography](../figures/slacs/cosmography.svg)",
         "",
     ]
     (ROOT / "analysis" / "slacs_results.md").write_text("\n".join(lines), encoding="utf-8")
