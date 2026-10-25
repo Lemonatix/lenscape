@@ -13,18 +13,18 @@
       ylabel={Median $M_\mathrm{E} / M_\mathrm{E}^\mathrm{ref}$},
     ]
     \nextgroupplot[
-      title={Dunkle Energie},
-      xlabel={Zustandsgleichung $w$},
+      title={Dark energy},
+      xlabel={Equation of state $w$},
       xmin=-2.05, xmax=-0.35,
     ]
     \addplot[reference, densely dotted, forget plot] coordinates {(-2.05,1) (-0.35,1)};
     \addplot[lsGrey, dashed, forget plot] coordinates {(-1,0.975) (-1,1.06)};
     \addplot[lsBlue, line width=1pt, mark=*, mark size=1.2pt] table[x=w, y=ratio] {data/mass_vs_w.dat};
     \node[font=\scriptsize, text=lsGrey, anchor=north east] at (rel axis cs:0.97,0.97)
-      {Spanne $\pgfmathprintnumber[fixed,precision=1]{\massspanw}\,\%$};
+      {range $\pgfmathprintnumber[fixed,precision=1]{\massspanw}\,\%$};
 
     \nextgroupplot[
-      title={Materiedichte},
+      title={Matter density},
       xlabel={$\Omega_\mathrm{m}$},
       xmin=0.08, xmax=0.62,
     ]
@@ -32,9 +32,9 @@
     \addplot[lsGrey, dashed, forget plot] coordinates {(0.3,0.975) (0.3,1.06)};
     \addplot[lsOrange, line width=1pt, mark=square*, mark size=1.1pt] table[x=Om, y=ratio] {data/mass_vs_om.dat};
     \node[font=\scriptsize, text=lsGrey, anchor=north east] at (rel axis cs:0.97,0.97)
-      {Spanne $\pgfmathprintnumber[fixed,precision=1]{\massspanom}\,\%$};
+      {range $\pgfmathprintnumber[fixed,precision=1]{\massspanom}\,\%$};
   \end{groupplot}
   \node[font=\small\bfseries, text=lsInk, anchor=south] at ($(group c1r1.north)!0.5!(group c2r1.north)+(0,0.75cm)$)
-    {Wie stark hängen die gemessenen Galaxienmassen von der Kosmologie ab? \normalfont($H_0 = 70$)};
+    {How much do the measured galaxy masses depend on cosmology? \normalfont($H_0 = 70$)};
 \end{tikzpicture}
 \end{document}
