@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Lädt das HST/ACS-F814W-Bild einer SLACS-Linse aus MAST und schneidet es aus.
+"""Download the HST/ACS F814W image of a SLACS lens from MAST and cut it out.
 
     pip install astroquery
-    python scripts/fetch_hst_slacs.py                  # Standard: J0946+1006 ("Jackpot", Doppelring)
+    python scripts/fetch_hst_slacs.py                  # default: J0946+1006 ("Jackpot", double ring)
     python scripts/fetch_hst_slacs.py J1430+4105 J0029-0055
 
-Koordinaten kommen aus dem SLACS-Katalog (Bolton et al. 2008, data/slacs_bolton2008).
-Gesucht wird ein gedriztes ACS/WFC-F814W-Bild (DRZ/DRC); gespeichert wird ein
-12″-Ausschnitt nach data/slacs_hst/<name>_F814W.fits (klein, versionierbar).
-Das volle Bild landet in data/cache/ (nicht versioniert).
+Coordinates come from the SLACS catalogue (Bolton et al. 2008, data/slacs_bolton2008).
+The script looks for a drizzled ACS/WFC F814W image (DRZ/DRC) and saves a
+12″ cutout to data/slacs_hst/<name>_F814W.fits (small enough to version).
+The full image goes to data/cache/ (not version-controlled).
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ def coords_for(name: str):
     t = ascii.read(folder / "table4.dat", readme=folder / "ReadMe", format="cds")
     row = t[t["Name"] == name]
     if len(row) == 0:
-        raise SystemExit(f"{name} nicht im SLACS-Katalog")
+        raise SystemExit(f"{name} not in the SLACS catalogue")
     s = str(row["SDSS"][0])  # HHMMSS.ss+DDMMSS.s
     ra = f"{s[0:2]}h{s[2:4]}m{s[4:9]}s"
     dec = f"{s[9:12]}d{s[12:14]}m{s[14:18]}s"
@@ -53,13 +53,13 @@ def fetch(name: str) -> None:
           np.array(["ACS/WFC" in str(i) for i in obs["instrument_name"]]) & (obs["dataproduct_type"] == "image")
     obs = obs[sel]
     if len(obs) == 0:
-        print("  keine ACS/WFC-F814W-Beobachtung gefunden")
+        print("  no ACS/WFC F814W observation found")
         return
     obs.sort("t_exptime", reverse=True)
     prods = Observations.get_product_list(obs[:5])
     prods = prods[np.isin(prods["productSubGroupDescription"], ["DRC", "DRZ"])]
     if len(prods) == 0:
-        print("  kein gedriztes Produkt (DRZ/DRC) gefunden")
+        print("  no drizzled product (DRZ/DRC) found")
         return
     CACHE.mkdir(parents=True, exist_ok=True)
     man = Observations.download_products(prods[:1], download_dir=str(CACHE), cache=True)
@@ -70,11 +70,11 @@ def fetch(name: str) -> None:
 
 
 def make_cutout(path, coord, name: str) -> Path:
-    """12″-Ausschnitt um ``coord`` aus einem gedrizzten Bild speichern.
+    """Save a 12″ cutout around ``coord`` from a drizzled image.
 
-    HST-Pipeline-Produkte haben die Daten in der Ebene "SCI", Produkte des
-    Hubble Legacy Archive (HLA) direkt in der Primär-Ebene; genommen wird die
-    erste Ebene mit einem 2D-Bild.
+    HST pipeline products keep the data in the "SCI" extension, Hubble Legacy
+    Archive (HLA) products directly in the primary HDU; the first HDU holding
+    a 2D image is used.
     """
     import astropy.units as u
     from astropy.io import fits
@@ -96,16 +96,16 @@ def make_cutout(path, coord, name: str) -> Path:
         hdr["PIXSCALE"] = (pix, "arcsec/pixel")
         exptime = float(prim.get("EXPTIME", sci.header.get("EXPTIME", 0.0)) or 0.0)
         if exptime <= 1.0:
-            # HLA normiert EXPTIME auf 1 s; die echte Zeit steckt in den Drizzle-Einträgen D###DEXP
+            # HLA normalizes EXPTIME to 1 s; the true time is in the drizzle keywords D###DEXP
             exptime = sum(float(v) for k, v in prim.items() if k.startswith("D") and k.endswith("DEXP"))
-        hdr["EXPTIME"] = (exptime, "s, Summe der Einzelbelichtungen")
+        hdr["EXPTIME"] = (exptime, "s, sum of the individual exposures")
         hdr["PHOTFLAM"] = sci.header.get("PHOTFLAM", prim.get("PHOTFLAM", 0.0))
         hdr["ORIGFILE"] = Path(path).name
         hdr["OBJECT"] = name
         OUT.mkdir(parents=True, exist_ok=True)
         target = OUT / f"{name}_F814W.fits"
         fits.PrimaryHDU(cut.data.astype(np.float32), header=hdr).writeto(target, overwrite=True)
-        print(f"  Ausschnitt {size}×{size} px ({pix:.3f}″/px, BUNIT={hdr['BUNIT']}, EXPTIME={hdr['EXPTIME']}) "
+        print(f"  cutout {size}×{size} px ({pix:.3f}″/px, BUNIT={hdr['BUNIT']}, EXPTIME={hdr['EXPTIME']}) "
               f"-> {target.relative_to(ROOT)}")
     return target
 
