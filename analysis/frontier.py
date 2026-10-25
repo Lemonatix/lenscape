@@ -1,15 +1,15 @@
-"""Hubble Frontier Fields: Massenkarten zweier Haufen und zweier Modellgruppen vergleichen.
+"""Hubble Frontier Fields: compare the mass maps of two clusters from two modelling teams.
 
-    python scripts/fetch_frontier.py   # einmalig (MAST)
-    python analysis/frontier.py        # rechnen, Daten für die Abbildungen schreiben
+    python scripts/fetch_frontier.py   # once (MAST)
+    python analysis/frontier.py        # compute, write data for the figures
     python figures/build.py frontier/...
 
-Für jede Karte:
-* M(<R): projizierte Masse um das Massenzentrum (bis 300 kpc)
-* θ_E,eff für eine Quelle bei z = 2 (Fläche innerhalb der tangentialen kritischen Kurve)
-* Quellebenen-Fläche mit Vergrößerung > μ für Quellen bei z = 9 -- wie viel "Suchfläche"
-  ein Haufen als kosmisches Teleskop für die ersten Galaxien bietet
-* Kontrolle: Ablenkkarten des Teams gegen unsere FFT-Ablenkung aus κ
+For each map:
+* M(<R): projected mass around the mass centre (up to 300 kpc)
+* θ_E,eff for a source at z = 2 (area inside the tangential critical curve)
+* source-plane area with magnification > μ for sources at z = 9 -- how much "survey
+  area" a cluster offers as a cosmic telescope for the first galaxies
+* check: the team's deflection maps against our FFT deflection from κ
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ CLUSTERS = {
     "macs0416": {"z": 0.396, "label": "MACS J0416.1$-$2403"},
 }
 TEAMS = {"cats": "CATS", "glafic": "GLAFIC", "sharon": "Sharon", "williams": "Williams", "keeton": "Keeton"}
-COSMO = make_cosmology(H0=70, Om0=0.3)  # HFF-Modelle sind in dieser Kosmologie angegeben
+COSMO = make_cosmology(H0=70, Om0=0.3)  # HFF models are given in this cosmology
 
 
 def find(folder: Path, suffix: str) -> Path | None:
@@ -52,9 +52,9 @@ def load(folder: Path) -> MassMap | None:
 
 
 def central_peak(kappa_file: Path, ref=None, radius: float = 60.0):
-    """Himmelsposition des Maximums von κ (5″ geglättet) innerhalb ``radius`` um ``ref``.
+    """Sky position of the maximum of κ (5″ smoothed) within ``radius`` of ``ref``.
 
-    Ohne ``ref`` wird um das Kartenzentrum gesucht. Gerechnet auf einem ~0,3″-Gitter.
+    Without ``ref`` the search is around the map centre. Computed on a ~0.3″ grid.
     """
     from astropy.io import fits
     from astropy.wcs import WCS
@@ -81,7 +81,7 @@ def central_peak(kappa_file: Path, ref=None, radius: float = 60.0):
 
 
 def field_radius(kappa_file: Path, center) -> float:
-    """Abstand (arcsec) von ``center`` zum nächsten Kartenrand."""
+    """Distance (arcsec) from ``center`` to the nearest map edge."""
     from astropy.io import fits
     from astropy.wcs import WCS
     import astropy.units as u
@@ -95,7 +95,7 @@ def field_radius(kappa_file: Path, center) -> float:
 
 
 def common_center(files: list[Path]):
-    """Mittleres Himmelszentrum der zentralen κ-Maxima aller Teams eines Haufens."""
+    """Mean sky centre of the central κ maxima of all teams for one cluster."""
     from astropy.coordinates import SkyCoord
     import astropy.units as u
 
@@ -109,7 +109,7 @@ def common_center(files: list[Path]):
 
 
 def source_area_above(m: MassMap, mu_thresholds, step: int, center=(0.0, 0.0), radius=np.inf) -> np.ndarray:
-    """Fläche in der Quellebene (arcmin²) mit |μ| > μ0, gezählt im Bildfeld innerhalb ``radius``."""
+    """Source-plane area (arcmin²) with |μ| > μ0, counted in the image field within ``radius``."""
     mu = np.abs(m.magnification_grid(step))
     X, Y = m.grid(step)
     inside = np.hypot(X - center[0], Y - center[1]) <= radius
@@ -134,18 +134,18 @@ def main(data_dir: Path | None = None, out_dir: Path | None = None) -> int:
         if not kfiles:
             continue
         center_sky, spread = common_center(kfiles)
-        print(f"{ckey}: gemeinsames Zentrum {center_sky.to_string('hmsdms', precision=1)} "
-              f"(Team-Maxima bis {spread:.1f}″ davon entfernt)")
+        print(f"{ckey}: common centre {center_sky.to_string('hmsdms', precision=1)} "
+              f"(team maxima up to {spread:.1f}″ away)")
         ckey_tex = "".join(ch for ch in ckey if ch.isalpha())
         macros[f"spread{ckey_tex}"] = spread
-        # gemeinsamer Auswertebereich: Kreis, der in allen Karten vollständig liegt
+        # common analysis region: circle that lies completely inside all maps
         r_common = min(field_radius(f, center_sky) for f in kfiles)
         kpc_per_arcsec = (COSMO.angular_diameter_distance(cinfo["z"]) * (np.pi / 180 / 3600)).to("kpc").value
         r_kpc = r_common * kpc_per_arcsec
         radii = np.linspace(5, r_kpc, 60)
         macros[f"rcommon{ckey_tex}"] = r_common
         macros[f"rcommonkpc{ckey_tex}"] = r_kpc
-        print(f"  gemeinsamer Bereich: r < {r_common:.0f}″ = {r_kpc:.0f} kpc")
+        print(f"  common region: r < {r_common:.0f}″ = {r_kpc:.0f} kpc")
         for tkey, tlabel in TEAMS.items():
             folder = data_dir / ckey / tkey
             m = load(folder) if folder.exists() else None
@@ -154,11 +154,11 @@ def main(data_dir: Path | None = None, out_dir: Path | None = None) -> int:
             found += 1
             tag = f"{ckey}_{tkey}"
             z_d = cinfo["z"]
-            step = max(1, int(round(0.5 / m.pixscale)))  # Auswertung auf ~0,5″-Gitter
+            step = max(1, int(round(0.5 / m.pixscale)))  # evaluate on a ~0.5″ grid
             cx, cy = m.sky_to_offset(center_sky)
 
-            # Kontrolle der Ablenkkarten gegen FFT aus κ (zentrales Drittel, Randeffekte vermeiden).
-            # Große Karten werden dafür auf <= 1500 Pixel pro Achse gemittelt.
+            # check the deflection maps against FFT from κ (central third, avoiding edge effects).
+            # Large maps are binned to <= 1500 pixels per axis for this.
             b = max(1, int(np.ceil(max(m.kappa_inf.shape) / 1500)))
             ny, nx = (s // b * b for s in m.kappa_inf.shape)
             binned = lambda a: a[:ny, :nx].reshape(ny // b, b, nx // b, b).mean(axis=(1, 3))
@@ -178,10 +178,10 @@ def main(data_dir: Path | None = None, out_dir: Path | None = None) -> int:
             write_table(out / f"mass_{tag}.dat", ["R", "M"], radii, prof / 1e14)
             write_table(out / f"area_{tag}.dat", ["mu", "A"], mus, area9)
 
-            # κ-Karte (z_s = 2) als Rasterbild + kritische Kurven für pgfplots,
-            # beides auf einem ~0,3″-Gitter (feiner bringt in der Abbildung nichts und sprengt TeX)
+            # κ map (z_s = 2) as a raster image + critical curves for pgfplots,
+            # both on a ~0.3″ grid (finer gains nothing in the figure and exhausts TeX memory)
             ps = max(1, int(round(0.3 / m.pixscale)))
-            half = 60.0  # ±60″ um das Zentrum
+            half = 60.0  # ±60″ around the centre
             i0, i1 = np.searchsorted(m.x, [cx - half, cx + half])
             j0, j1 = np.searchsorted(m.y, [cy - half, cy + half])
             i1 = i0 + (i1 - i0) // ps * ps
@@ -204,7 +204,7 @@ def main(data_dir: Path | None = None, out_dir: Path | None = None) -> int:
                     if len(ln) < 6:
                         continue
                     np.savetxt(fh, ln, fmt="%.2f")
-                    fh.write("\n")  # Leerzeile = Sprung in pgfplots
+                    fh.write("\n")  # blank line = jump in pgfplots
             h_ = m.pixscale / 2
             ext = [m.x[i0] - h_ - cx, m.x[i1 - 1] + h_ - cx, m.y[j0] - h_ - cy, m.y[j1 - 1] + h_ - cy]
             key = "".join(ch for ch in (ckey + tkey) if ch.isalpha())
@@ -215,30 +215,30 @@ def main(data_dir: Path | None = None, out_dir: Path | None = None) -> int:
                          float(np.interp(100, radii, prof)), float(prof[-1]), r_kpc,
                          float(np.interp(10, mus, area9)), r_common, fft_check, m.pixscale))
             print(f"{tag}: θE(z=2) = {thE2:.1f}″, M(<100 kpc) = {np.interp(100, radii, prof):.3g} M☉, "
-                  f"A(μ>10, z=9) = {np.interp(10, mus, area9):.3f} arcmin², FFT-Kontrolle {100 * fft_check:.1f} %")
+                  f"A(μ>10, z=9) = {np.interp(10, mus, area9):.3f} arcmin², FFT check {100 * fft_check:.1f} %")
 
     if not found:
-        print("Keine Frontier-Fields-Karten gefunden. Bitte: python scripts/fetch_frontier.py")
+        print("No Frontier Fields maps found. Run: python scripts/fetch_frontier.py")
         return 1
     write_macros(out / "macros.tex", macros)
-    lines = ["# Hubble Frontier Fields: Massenmodelle im Vergleich", "",
-             "Automatisch erzeugt von `analysis/frontier.py`. Kosmologie: H₀ = 70, Ωₘ = 0,3 (wie die HFF-Modelle).", "",
-             "| Haufen | Team | θ_E,eff (z_s = 2) | M(<100 kpc) | M(<R_max) | A(μ>10), z_s = 9 | Ablenkkarte vs. FFT(κ) | Pixel |",
+    lines = ["# Hubble Frontier Fields: mass models compared", "",
+             "Generated automatically by `analysis/frontier.py`. Cosmology: H₀ = 70, Ωₘ = 0.3 (as for the HFF models).", "",
+             "| Cluster | Team | θ_E,eff (z_s = 2) | M(<100 kpc) | M(<R_max) | A(μ>10), z_s = 9 | deflection map vs. FFT(κ) | Pixel |",
              "|---|---|---|---|---|---|---|---|"]
     for r in rows:
         lines.append(f"| {r[0]} | {r[1]} | {r[2]:.1f}″ | {r[3]:.3g} M☉ | {r[4]:.3g} M☉ (R = {r[5]:.0f} kpc) | "
                      f"{r[6]:.3f} arcmin² (r < {r[7]:.0f}″) | {100 * r[8]:.1f} % | {r[9]:.3f}″ |")
     lines += ["",
-              "Beide Teams werden um dasselbe Himmelszentrum ausgewertet (Mittel der zentralen κ-Maxima) und nur im "
-              "Kreis, den alle Karten vollständig abdecken (die GLAFIC-Karten sind deutlich kleiner als die von CATS).",
+              "Both teams are evaluated around the same sky centre (mean of the central κ maxima) and only inside "
+              "the circle that all maps cover completely (the GLAFIC maps are considerably smaller than the CATS ones).",
               "",
-              "Die Spalte „Ablenkkarte vs. FFT(κ)“ ist die mediane relative Abweichung der vom Team gelieferten "
-              "Ablenkwinkel von unserer FFT-Rechnung aus der κ-Karte im zentralen Bereich. Die Richtungen stimmen "
-              "überall überein; die Beträge der Team-Karten sind etwas größer, weil sie auch Masse außerhalb des "
-              "Kartenfelds enthalten, die der FFT fehlt.", "",
-              "![Karten](../figures/frontier/frontier_maps.svg)", "",
-              "![Massenprofile](../figures/frontier/frontier_mass.svg)", "",
-              "![Fläche](../figures/frontier/frontier_area.svg)", ""]
+              "The column \"deflection map vs. FFT(κ)\" is the median relative deviation of the team's deflection "
+              "angles from our FFT computation from the κ map in the central region. The directions agree "
+              "everywhere; the team maps have slightly larger amplitudes because they also include mass outside "
+              "the map field, which the FFT misses.", "",
+              "![Maps](../figures/frontier/frontier_maps.svg)", "",
+              "![Mass profiles](../figures/frontier/frontier_mass.svg)", "",
+              "![Area](../figures/frontier/frontier_area.svg)", ""]
     if out_dir is None:
         (ROOT / "analysis" / "frontier_results.md").write_text("\n".join(lines), encoding="utf-8")
     print("\n".join(lines))
