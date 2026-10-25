@@ -26,7 +26,7 @@ def test_sis_single_image_outside_einstein_radius():
 def test_sie_with_shear_can_make_four_images():
     lens = SIE(1.0, q=0.7) + ExternalShear(0.05, 0.0)
     imgs = find_images(lens, 0.05, 0.03)
-    assert len(imgs) == 4  # das zentrale Bild fehlt beim singulären SIE
+    assert len(imgs) == 4  # the singular SIE has no central image
     assert (np.abs(imgs[:, 2]) > 1).all()
 
 
