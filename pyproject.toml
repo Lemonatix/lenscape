@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lenscape"
 version = "0.1.0"
-description = "Gravitationslinsen modellieren, simulieren und mit echten Daten auswerten"
+description = "Model, simulate and analyse gravitational lenses with real data"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Mika Riesterer" }]
