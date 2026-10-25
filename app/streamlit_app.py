@@ -356,7 +356,7 @@ if HAVE_SLACS:
             "leaves the dark matter."
         )
         st.latex(r"f_\mathrm{DM}(<R_\mathrm{E}) = 1 - \frac{M_\ast(<R_\mathrm{E})}{M_\mathrm{E}}, \qquad "
-                 r"f_\mathrm{SIE} = \frac{\sigma_\mathrm{SDSS}}{\sigma_\mathrm{SIE}}")
+                 r"f_\mathrm{SIE} = \sigma_\mathrm{SDSS} / \sigma_\mathrm{SIE}")
         phys = slacs_physics(H0, Om0, Ode0, w0)
         good = phys["good_sigma"].to_numpy(bool)
         k1, k2, k3, k4 = st.columns(4)
