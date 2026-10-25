@@ -1,17 +1,17 @@
-"""Gitterbasierte Massenmodelle, z. B. die Hubble-Frontier-Fields-Karten.
+"""Grid-based mass models, e.g. the Hubble Frontier Fields maps.
 
-Eine Karte liefert die Konvergenz kappa_inf(theta) (und meist die Ablenkwinkel)
-für eine Quelle im Unendlichen, also D_ds/D_s = 1. Für eine Quelle bei z_s
-werden kappa und alpha mit dem Faktor D_ds/D_s(z_d, z_s) skaliert.
+A map provides the convergence kappa_inf(theta) (and usually the deflection
+angles) for a source at infinity, i.e. D_ds/D_s = 1. For a source at z_s,
+kappa and alpha are scaled by the factor D_ds/D_s(z_d, z_s).
 
-Fehlen die Ablenkkarten, folgen sie aus kappa durch Faltung
+If the deflection maps are missing, they follow from kappa by convolution
 
     alpha(theta) = 1/pi * ∫ kappa(theta') (theta - theta') / |theta - theta'|^2 d^2theta',
 
-hier mit FFT auf einem doppelt so großen, mit Nullen aufgefüllten Gitter.
+here via FFT on a zero-padded grid of twice the size.
 
-Koordinaten: x, y in Bogensekunden entlang der Pixelachsen der Karte, mit dem
-Kartenzentrum als Ursprung (bei HFF-Karten ist Norden oben, Osten links).
+Coordinates: x, y in arcseconds along the pixel axes of the map, with the map
+centre as origin (for HFF maps north is up, east is left).
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from .lenses import Lens
 
 
 def deflection_from_kappa(kappa: np.ndarray, pixscale: float) -> tuple[np.ndarray, np.ndarray]:
-    """alpha_x, alpha_y (arcsec) aus einer kappa-Karte per FFT-Faltung."""
+    """alpha_x, alpha_y (arcsec) from a kappa map via FFT convolution."""
     ny, nx = kappa.shape
     py, px = 2 * ny, 2 * nx
     yy = (np.arange(py) - ny) * pixscale
@@ -39,7 +39,7 @@ def deflection_from_kappa(kappa: np.ndarray, pixscale: float) -> tuple[np.ndarra
     with np.errstate(divide="ignore", invalid="ignore"):
         kx = np.where(r2 > 0, X / (np.pi * r2), 0.0)
         ky = np.where(r2 > 0, Y / (np.pi * r2), 0.0)
-    # Kern so verschieben, dass der Nullpunkt bei Index (0, 0) liegt
+    # shift the kernel so that its origin sits at index (0, 0)
     kx = np.fft.ifftshift(kx)
     ky = np.fft.ifftshift(ky)
     pad = np.zeros((py, px))
@@ -53,15 +53,15 @@ def deflection_from_kappa(kappa: np.ndarray, pixscale: float) -> tuple[np.ndarra
 
 @dataclass
 class MassMap(Lens):
-    """Linse aus Karten auf einem regelmäßigen Gitter (Normierung D_ds/D_s = 1)."""
+    """Lens defined by maps on a regular grid (normalized to D_ds/D_s = 1)."""
 
     kappa_inf: np.ndarray
-    pixscale: float                      # arcsec pro Pixel
+    pixscale: float                      # arcsec per pixel
     alpha_x_inf: np.ndarray | None = None
     alpha_y_inf: np.ndarray | None = None
-    ratio: float = 1.0                   # D_ds/D_s der gewünschten Quellrotverschiebung
+    ratio: float = 1.0                   # D_ds/D_s of the desired source redshift
     name: str = ""
-    wcs: object = None                   # astropy.wcs.WCS der Karte (optional)
+    wcs: object = None                   # astropy.wcs.WCS of the map (optional)
 
     def __post_init__(self):
         self.kappa_inf = np.nan_to_num(np.asarray(self.kappa_inf, dtype=float))
@@ -75,7 +75,7 @@ class MassMap(Lens):
         self._ax = RegularGridInterpolator((self.y, self.x), np.nan_to_num(self.alpha_x_inf), **kw)
         self._ay = RegularGridInterpolator((self.y, self.x), np.nan_to_num(self.alpha_y_inf), **kw)
 
-    # ------------------------------------------------------------- Konstruktion
+    # ------------------------------------------------------------- construction
     @classmethod
     def from_fits(cls, kappa_file: Path | str, alpha_x_file=None, alpha_y_file=None, name: str = "") -> "MassMap":
         from astropy.io import fits
@@ -93,13 +93,13 @@ class MassMap(Lens):
         return cls(kappa, pixscale, ax, ay, name=name, wcs=wcs)
 
     def sky_to_offset(self, coord) -> tuple[float, float]:
-        """Himmelskoordinate -> (x, y) in arcsec im Koordinatensystem dieser Karte."""
+        """Sky coordinate -> (x, y) in arcsec in this map's coordinate system."""
         i, j = self.wcs.world_to_pixel(coord)
         ny, nx = self.kappa_inf.shape
         return float((i - (nx - 1) / 2) * self.pixscale), float((j - (ny - 1) / 2) * self.pixscale)
 
     def at_source_redshift(self, geom: LensGeometry) -> "MassMap":
-        """Gleiche Karte, skaliert auf die Quelle von ``geom`` (D_ds/D_s)."""
+        """Same map, rescaled to the source of ``geom`` (D_ds/D_s)."""
         ratio = float((geom.D_ds / geom.D_s).decompose().value)
         m = MassMap.__new__(MassMap)
         m.__dict__.update(self.__dict__)
@@ -119,7 +119,7 @@ class MassMap(Lens):
         pts, shape = self._pts(x, y)
         return self.ratio * self._k(pts).reshape(shape)
 
-    # ---------------------------------------------------------- Kartengrößen
+    # ---------------------------------------------------------- map quantities
     @property
     def extent(self) -> list[float]:
         h = self.pixscale / 2
@@ -130,7 +130,7 @@ class MassMap(Lens):
         return X, Y
 
     def magnification_grid(self, step: int = 1):
-        """|det A|^-1 auf dem (ausgedünnten) Kartengitter, aus Ableitungen der Ablenkkarten."""
+        """|det A|^-1 on the (thinned) map grid, from derivatives of the deflection maps."""
         ax = self.ratio * self.alpha_x_inf[::step, ::step]
         ay = self.ratio * self.alpha_y_inf[::step, ::step]
         d = self.pixscale * step
@@ -142,13 +142,13 @@ class MassMap(Lens):
 
 
 def sigma_crit_inf(z_d: float, cosmo) -> u.Quantity:
-    """Kritische Flächendichte für D_ds/D_s = 1: c^2 / (4 pi G D_d)."""
+    """Critical surface density for D_ds/D_s = 1: c^2 / (4 pi G D_d)."""
     D_d = cosmo.angular_diameter_distance(z_d)
     return (const.c**2 / (4 * np.pi * const.G * D_d)).to(u.M_sun / u.kpc**2)
 
 
 def enclosed_mass_profile(m: MassMap, z_d: float, cosmo, radii_kpc, center=(0.0, 0.0)) -> np.ndarray:
-    """Projizierte Masse M(<R) in M_sun um ``center`` (arcsec) für die Radien in kpc."""
+    """Projected mass M(<R) in M_sun around ``center`` (arcsec) for radii in kpc."""
     kpc_per_arcsec = (cosmo.angular_diameter_distance(z_d) * (np.pi / 180 / 3600)).to(u.kpc).value
     X, Y = m.grid()
     R = np.hypot(X - center[0], Y - center[1]) * kpc_per_arcsec
@@ -162,12 +162,12 @@ def enclosed_mass_profile(m: MassMap, z_d: float, cosmo, radii_kpc, center=(0.0,
 
 def effective_einstein_radius(m: MassMap, step: int = 1, center: tuple[float, float] | None = None,
                               max_dist: float = 40.0) -> float:
-    """θ_E,eff = sqrt(A/π) mit A = Fläche innerhalb der tangentialen kritischen Kurve.
+    """θ_E,eff = sqrt(A/π) with A = area inside the tangential critical curve.
 
-    Gesucht wird die größte geschlossene Kontur det A = 0; das ist bei Haufen die
-    äußere (tangentiale) kritische Kurve. Gängiges Maß für die Linsenstärke eines Haufens.
-    Mit ``center`` zählen nur Kurven, deren Schwerpunkt höchstens ``max_dist`` (arcsec)
-    davon entfernt liegt -- große Karten enthalten sonst Kurven um Unterklumpen am Rand.
+    Picks the largest closed contour det A = 0; for clusters this is the outer
+    (tangential) critical curve. A common measure of a cluster's lensing strength.
+    With ``center``, only curves whose centroid lies within ``max_dist`` (arcsec)
+    count -- large maps otherwise contain curves around substructure near the edge.
     """
     import contourpy
 
@@ -178,7 +178,7 @@ def effective_einstein_radius(m: MassMap, step: int = 1, center: tuple[float, fl
     best = 0.0
     for line in gen.lines(0.0):
         if len(line) < 10 or not np.allclose(line[0], line[-1], atol=2 * m.pixscale * step):
-            continue  # nur geschlossene Kurven
+            continue  # closed curves only
         x, y = line[:, 0], line[:, 1]
         if center is not None and np.hypot(x.mean() - center[0], y.mean() - center[1]) > max_dist:
             continue
