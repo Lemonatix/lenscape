@@ -9,7 +9,7 @@ def test_distance_ratio_matches_astropy():
     for Om, w in [(0.3, -1.0), (0.2, -1.5), (0.5, -0.6)]:
         g = LensGeometry(0.35, 1.2, make_cosmology(H0=70, Om0=Om, w0=w))
         expected = (g.D_ds / g.D_s).value
-        # astropy berücksichtigt Strahlung nicht (Tcmb0=0), daher exakt vergleichbar
+        # astropy ignores radiation here (Tcmb0=0), so the comparison is exact
         assert model_distance_ratio(0.35, 1.2, Om, w) == pytest.approx(expected, rel=1e-5)
 
 
@@ -35,7 +35,7 @@ def test_fit_recovers_truth_on_synthetic_sample():
                         sigma_int=np.linspace(0, 0.1, 11))
     best = res.best
     assert best["f_E"] == pytest.approx(1.02, abs=0.02)
-    # Om und w sind entartet, aber die Wahrheit muss im 2-sigma-Bereich liegen
+    # Om and w are degenerate, but the truth must lie inside the 2-sigma region
     j = np.argmin(np.abs(res.w - truth["w"]))
     i = np.argmin(np.abs(res.Om - truth["Om"]))
     assert res.delta_chi2()[j, i] < 6.17
