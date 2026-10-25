@@ -285,6 +285,17 @@ def main() -> int:
     rmain = base
     gs2 = rmain["res"].grid  # source grid of the best inversion for source 2
 
+    # full model (lens, lens light, both reconstructed sources) for high-resolution renders,
+    # e.g. scripts/make_gallery.py
+    np.savez_compressed(
+        OUT / "model.npz",
+        lens=np.array([lens_p[k] for k in ("thetaE", "e1m", "e2m", "g1", "g2")]), center=np.array([xl, yl]),
+        light=np.array([p[k] for k in ("xl", "yl", "Rl", "nl", "e1l", "e2l")]),
+        light_amp=par.amplitudes["lens_light"], eta=eta_iso, pixscale=pix,
+        source1=res1.source, grid1=np.array([g1.n, g1.half, g1.x0, g1.y0]),
+        source2=rmain["res"].source, grid2=np.array([gs2.n, gs2.half, gs2.x0, gs2.y0]),
+    )
+
     # ------------------------------------------------ images for the figure
     lo, hi = np.percentile(img[~bad], [5, 99.7])
     model_full = par.lens_light + par.amplitudes["background"] + res1.model + rmain["res"].model
