@@ -1,6 +1,6 @@
-"""Hilfen, um Rechenergebnisse für TikZ/pgfplots-Abbildungen zu exportieren.
+"""Helpers to export computed results for TikZ/pgfplots figures.
 
-Python schreibt nur Daten; das Aussehen steckt in figures/<thema>/*.tex.
+Python only writes data; the look lives in figures/<topic>/*.tex.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from pathlib import Path
 import contourpy
 import numpy as np
 
-DCHI2_2D = {"68": 2.30, "95": 6.17}  # Δχ²-Niveaus für zwei Parameter
+DCHI2_2D = {"68": 2.30, "95": 6.17}  # Δχ² levels for two parameters
 
 
 def write_table(path: Path, header: list[str], *cols, fmt: str = "%.6g") -> None:
@@ -19,18 +19,18 @@ def write_table(path: Path, header: list[str], *cols, fmt: str = "%.6g") -> None
 
 
 def write_macros(path: Path, values: dict[str, float]) -> None:
-    """Einzelwerte als TeX-Makros (\\def\\name{wert}); Namen nur aus Buchstaben."""
+    """Single values as TeX macros (\\def\\name{value}); names must consist of letters only."""
     lines = [f"\\def\\{k}{{{v:.8g}}}" for k, v in values.items()]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def export_regions(data_dir: Path, tag: str, x, y, delta_chi2, style_prefix: str | None = None,
                    levels: dict[str, float] = DCHI2_2D) -> Path:
-    """Gefüllte Δχ²-Bereiche als Polygone + eine .tex-Datei mit den \\addplot-Befehlen.
+    """Filled Δχ² regions as polygons plus a .tex file with the \\addplot commands.
 
-    ``delta_chi2`` hat die Form (len(y), len(x)). Die erzeugte Datei
-    ``<tag>_regions.tex`` zeichnet zuerst 95 %, dann 68 % mit den pgfplots-Stilen
-    ``<style_prefix>95`` und ``<style_prefix>68``.
+    ``delta_chi2`` has shape (len(y), len(x)). The generated file
+    ``<tag>_regions.tex`` draws 95 % first, then 68 %, with the pgfplots styles
+    ``<style_prefix>95`` and ``<style_prefix>68``.
     """
     style_prefix = style_prefix or tag
     gen = contourpy.contour_generator(np.asarray(x), np.asarray(y), np.asarray(delta_chi2),
