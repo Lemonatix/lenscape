@@ -1,4 +1,4 @@
-"""Ray-Tracing: Bildebene -> Quellebene und Rendern gelinster Bilder."""
+"""Ray tracing: image plane -> source plane, and rendering of lensed images."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from .sources import Source
 
 
 def make_grid(half_width: float, n: int):
-    """Quadratisches Pixelgitter (Pixelmitten) von -half_width bis +half_width arcsec."""
+    """Square pixel grid (pixel centres) from -half_width to +half_width arcsec."""
     pix = 2 * half_width / n
     c = (np.arange(n) + 0.5) * pix - half_width
     x, y = np.meshgrid(c, c)
@@ -17,10 +17,10 @@ def make_grid(half_width: float, n: int):
 
 
 def render(lens: Lens, source: Source, half_width: float = 3.0, n: int = 300, supersample: int = 2):
-    """Gelinstes Bild der Quelle; Oberflächenhelligkeit bleibt erhalten (Liouville).
+    """Lensed image of the source; surface brightness is conserved (Liouville).
 
-    Jedes Pixel wird in ``supersample``^2 Unterstrahlen zerlegt, um Kanten
-    an kritischen Kurven zu glätten.
+    Each pixel is split into ``supersample``^2 sub-rays to smooth edges near
+    critical curves.
     """
     pix = 2 * half_width / n
     x, y = make_grid(half_width, n)
