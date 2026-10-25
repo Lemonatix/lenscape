@@ -17,16 +17,16 @@
     ]
     \nextgroupplot[title={HST/ACS F814W}]
       \addplot graphics[xmin=-\halfsize, xmax=\halfsize, ymin=-\halfsize, ymax=\halfsize] {data/J0946p1006_data.png};
-    \nextgroupplot[title={Modell}]
+    \nextgroupplot[title={Model}]
       \addplot graphics[xmin=-\halfsize, xmax=\halfsize, ymin=-\halfsize, ymax=\halfsize] {data/J0946p1006_model.png};
-    \nextgroupplot[title={Residuum ($\pm5\sigma$)}]
+    \nextgroupplot[title={Residual ($\pm5\sigma$)}]
       \addplot graphics[xmin=-\halfsize, xmax=\halfsize, ymin=-\halfsize, ymax=\halfsize] {data/J0946p1006_resid.png};
-    \nextgroupplot[title={Quelle (entlinst)}, xmin=-\srchalf, xmax=\srchalf, ymin=-\srchalf, ymax=\srchalf,
+    \nextgroupplot[title={Source (delensed)}, xmin=-\srchalf, xmax=\srchalf, ymin=-\srchalf, ymax=\srchalf,
                    xtick={-1,0,1}, ytick={-1,0,1}]
       \addplot graphics[xmin=-\srchalf, xmax=\srchalf, ymin=-\srchalf, ymax=\srchalf] {data/J0946p1006_srcplane.png};
   \end{groupplot}
   \node[font=\small\bfseries, text=lsInk, anchor=south] at ($(group c2r1.north)!0.5!(group c3r1.north)+(0,0.85cm)$)
-    {SDSS J0946$+$1006 selbst modelliert: SIE $+$ Scherung $+$ Sérsic-Quelle};
+    {SDSS J0946$+$1006 modelled with lenscape: SIE $+$ shear $+$ S\'ersic source};
   \node[font=\scriptsize, text=lsInk, anchor=north, align=left] at ($(group c2r1.south)!0.5!(group c3r1.south)+(0,-0.85cm)$)
     {\begin{tabular}{@{}lllll@{}}
        & $\theta_\mathrm{E}$ & $q$ & PA & $\chi^2_\mathrm{red}$\\[1pt]
@@ -35,7 +35,7 @@
        lenscape, SIE & $\pgfmathprintnumber[fixed,precision=3,fixed zerofill]{\siethetaE}''$
          & $\pgfmathprintnumber[fixed,precision=2,fixed zerofill]{\sieq}$ & $\pgfmathprintnumber[fixed,precision=0]{\siepa}^\circ$
          & $\pgfmathprintnumber[fixed,precision=2,fixed zerofill]{\siechi}$\\
-       lenscape, SIE $+$ Scherung ($\gamma = \pgfmathprintnumber[fixed,precision=3]{\fitgamma}$, abgebildet)
+       lenscape, SIE $+$ shear ($\gamma = \pgfmathprintnumber[fixed,precision=3]{\fitgamma}$, shown)
          & $\pgfmathprintnumber[fixed,precision=3,fixed zerofill]{\fitthetaE}''$
          & $\pgfmathprintnumber[fixed,precision=2,fixed zerofill]{\fitq}$ & $\pgfmathprintnumber[fixed,precision=0]{\fitpa}^\circ$
          & $\pgfmathprintnumber[fixed,precision=2,fixed zerofill]{\fitchi}$
