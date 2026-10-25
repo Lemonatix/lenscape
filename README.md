@@ -194,6 +194,14 @@ network access the page still works. To embed it in your own website without the
 **speed of light** ($\theta_\mathrm{E} \propto 1/c$). Scenarios: a galaxy, the Sun as in Eddington's 1919
 eclipse, the same Sun at 1 % of $c$, and a marble-sized black hole in your room.
 
+## Gallery and showcase
+
+- [`gallery/`](gallery/README.md): square high-resolution pictures (HST image of the Jackpot, high-resolution
+  lenscape model, simulated rings, Frontier Fields map), e.g. for a profile picture –
+  `python scripts/make_gallery.py`.
+- [`showcase/`](showcase/README.md): everything for the project page on the website (demo, cover, thumbnail,
+  screenshots, figures, texts, example markup) – `python scripts/make_showcase.py --screenshots`.
+
 ## Tests
 
 ```bash
