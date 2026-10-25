@@ -1,42 +1,48 @@
 # lenscape
 
-Gravitationslinsen modellieren, interaktiv erkunden und mit echten Beobachtungsdaten auswerten.
+Model gravitational lenses, explore them interactively and analyse them with real observational data.
 
-Die Idee: Mit derselben Physik, die einen Einsteinring im Simulator erzeugt, sollen sich echte Linsen
-vermessen lassen. Daraus folgen Massen von Galaxien und Haufen, der Anteil Dunkler Materie und, über die
-Distanzen, der Einfluss der Kosmologie (Ωₘ, Dunkle Energie w, H₀).
+The idea: the same physics that produces an Einstein ring in the simulator should be able to measure real
+lenses. That yields masses of galaxies and clusters, the dark-matter fraction and, through the distances, the
+influence of cosmology ($\Omega_\mathrm{m}$, the dark-energy equation of state $w$, $H_0$).
 
-## Physik in einem Satz
+## The physics in one line
 
-Ein Lichtstrahl, der die Linse unter dem Winkel **θ** passiert, kommt von der Quellposition
+A light ray that passes the lens at angle $\vec\theta$ comes from the source position
 
-```
-β = θ − α(θ),        θ_E² = 4GM/c² · D_ds / (D_d · D_s)
-```
+$$
+\vec\beta = \vec\theta - \vec\alpha(\vec\theta), \qquad
+\theta_\mathrm{E}^2 = \frac{4GM}{c^2}\,\frac{D_\mathrm{ds}}{D_\mathrm{d}\,D_\mathrm{s}} .
+$$
 
-Die Kosmologie geht nur über die Winkeldurchmesser-Distanzen D_d, D_s und D_ds ein, also über die kritische
-Flächendichte Σ_crit = c²/(4πG) · D_s/(D_d D_ds).
+Cosmology enters only through the angular diameter distances $D_\mathrm{d}$, $D_\mathrm{s}$ and
+$D_\mathrm{ds}$, i.e. through the critical surface density
 
-## Inhalt
+$$
+\Sigma_\mathrm{crit} = \frac{c^2}{4\pi G}\,\frac{D_\mathrm{s}}{D_\mathrm{d}\,D_\mathrm{ds}} .
+$$
 
-| Modul | Inhalt |
+## Contents
+
+| Module | Contents |
 |---|---|
-| `lenscape.cosmology` | wCDM-Kosmologie, Distanzen, Σ_crit, Einsteinradien, M(<θ_E), Zeitverzögerungs-Distanz |
-| `lenscape.lenses` | Punktmasse, SIS, SIE (elliptisch), NFW-Halo, externe Scherung, Überlagerungen |
-| `lenscape.sources` | Gauß-, Sérsic- und Bildquellen |
-| `lenscape.raytrace` | Ray-Tracing mit Supersampling, Konvergenz- und Vergrößerungskarten |
-| `lenscape.caustics` | kritische Kurven und Kaustiken |
-| `lenscape.solver` | Bildpositionen und Vergrößerungen einer Punktquelle |
-| `lenscape.catalogs` | echte Linsenkataloge einlesen (SLACS, CDS/VizieR-Format) |
-| `lenscape.strong_lenses` | Einsteinmassen, σ_SIE, M/L und Anteil Dunkler Materie einer Stichprobe |
-| `lenscape.timedelay` | Fermat-Potential und Zeitverzögerungen zwischen Bildern |
-| `lenscape.h0licow`, `lenscape.h0_inference` | die sechs H0LiCOW-Linsen und der H₀-Posterior |
-| `lenscape.clustermaps` | gitterbasierte Massenkarten (z. B. Frontier Fields) als Linse, FFT-Ablenkung, Massenprofile |
-| `lenscape.imagefit` | Linsenmodell direkt an ein Bild fitten (Licht, SIE+Scherung, Quelle, PSF) |
-| `lenscape.cosmography` | Ωₘ-w-Fit aus Einsteinradien und Geschwindigkeitsdispersionen |
-| `analysis/` | Auswerteskripte mit Ergebnissen und Abbildungen |
-| `app/` | interaktiver Simulator (Streamlit) |
-| `web/` | Nebenprojekt für die Website: eigenes Foto hochladen und verbiegen |
+| `lenscape.cosmology` | wCDM cosmology, distances, Σ_crit, Einstein radii, M(<θ_E), time-delay distance |
+| `lenscape.lenses` | point mass, SIS, SIE (elliptical), NFW halo, external shear, superpositions |
+| `lenscape.sources` | Gaussian, Sérsic and image sources |
+| `lenscape.raytrace` | ray tracing with supersampling, convergence and magnification maps |
+| `lenscape.caustics` | critical curves and caustics |
+| `lenscape.solver` | image positions and magnifications of a point source |
+| `lenscape.catalogs` | reading real lens catalogues (SLACS, CDS/VizieR format) |
+| `lenscape.strong_lenses` | Einstein masses, σ_SIE, M/L and dark-matter fraction of a sample |
+| `lenscape.timedelay` | Fermat potential and time delays between images |
+| `lenscape.h0licow`, `lenscape.h0_inference` | the six H0LiCOW lenses and the H₀ posterior |
+| `lenscape.clustermaps` | grid-based mass maps (e.g. Frontier Fields) as lenses, FFT deflection, mass profiles |
+| `lenscape.imagefit` | fit a lens model directly to an image (light, SIE + shear, source, PSF) |
+| `lenscape.pixsrc` | pixelated source reconstruction with Bayesian regularization |
+| `lenscape.cosmography` | Ωₘ–w fit from Einstein radii and velocity dispersions |
+| `analysis/` | analysis scripts with results and figures |
+| `app/` | interactive simulator (Streamlit) |
+| `web/` | side project for the website: upload your own photo and bend it |
 
 ## Installation
 
@@ -46,20 +52,23 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e ".[app,dev]"
 ```
 
-## Simulator starten
+## Running the simulator
 
 ```bash
 streamlit run app/streamlit_app.py
 ```
 
-Regler für Kosmologie (H₀, Ωₘ, Ω_Λ, w), Rotverschiebungen, Massenmodell und Quelle. Drei Ansichten:
+Sliders for cosmology ($H_0$, $\Omega_\mathrm{m}$, $\Omega_\Lambda$, $w$), redshifts, mass model and source.
+Formulas, labels and key numbers are typeset with LaTeX (KaTeX in the browser, mathtext in the plots). Views:
 
-- **Simulator**: Quellebene mit Kaustiken neben der beobachteten Bildebene mit kritischen Kurven; die Bilder der
-  Quellmitte werden mit Vergrößerung und Parität aufgelistet.
-- **Konvergenz & Vergrößerung**: κ- und |μ|-Karten.
-- **Dunkle Energie & Kosmologie**: Wie stark hängt die aus einem beobachteten θ_E abgeleitete Masse von w und Ωₘ ab?
+- **Simulator**: the source plane with caustics next to the observed image plane with critical curves; the images
+  of the source centre are listed with magnification, parity and time delay.
+- **Convergence & magnification**: maps of $\kappa$ and $|\mu|$.
+- **Dark energy & cosmology**: how much does the mass inferred from an observed $\theta_\mathrm{E}$ depend on
+  $w$ and $\Omega_\mathrm{m}$?
+- **SLACS sample** and **H₀ from time delays** (see below, once the data are downloaded).
 
-## Als Bibliothek
+## As a library
 
 ```python
 from lenscape import LensGeometry, SIE, ExternalShear, make_cosmology
@@ -68,112 +77,122 @@ from lenscape.solver import find_images
 geom = LensGeometry(z_d=0.3, z_s=1.0, cosmo=make_cosmology(Om0=0.31, w0=-1.0))
 lens = SIE(geom.theta_E_sis(250), q=0.7) + ExternalShear(0.05, 0.0)
 
-print(geom.mass_in_theta_E(geom.theta_E_sis(250)))   # M_sun innerhalb θ_E
-print(find_images(lens, 0.05, 0.03))                 # 4 Bilder: x, y, μ
+print(geom.mass_in_theta_E(geom.theta_E_sis(250)))   # M_sun inside θ_E
+print(find_images(lens, 0.05, 0.03))                 # 4 images: x, y, μ
 ```
 
-## Echte Daten: 63 SLACS-Linsen
+## Real data: 63 SLACS lenses
 
 ```bash
-python scripts/fetch_cds.py     # nur nötig, falls data/ fehlt
-python analysis/slacs.py        # rechnen; Datentabellen nach figures/slacs/data/, Ergebnisse nach analysis/slacs_results.md
-python figures/build.py         # TikZ/pgfplots-Abbildungen bauen (PDF + SVG, braucht LaTeX mit pgfplots)
+python scripts/fetch_cds.py     # only needed if data/ is missing
+python analysis/slacs.py        # compute; data tables to figures/slacs/data/, results to analysis/slacs_results.md
+python figures/build.py         # build the TikZ/pgfplots figures (PDF + SVG, needs LaTeX with pgfplots)
 ```
 
-Die Abbildungen sind reines TikZ/pgfplots (`figures/slacs/*.tex`, gemeinsamer Stil in
-`figures/lenscape-style.tex`). Die PDFs lassen sich direkt in LaTeX-Dokumente einbinden, die SVGs in README und
-Website. Python liefert nur die Daten, das Aussehen steckt komplett im TeX.
+The figures are pure TikZ/pgfplots (`figures/slacs/*.tex`, shared style in `figures/lenscape-style.tex`). The
+PDFs can be included directly in LaTeX documents, the SVGs in the README and on the website. Python only
+provides the data; the look lives entirely in TeX.
 
-![Kosmographie](figures/slacs/cosmography.svg)
+![Cosmography](figures/slacs/cosmography.svg)
 
-Was dabei herauskommt (Details in [`analysis/slacs_results.md`](analysis/slacs_results.md)):
+Results (details in [`analysis/slacs_results.md`](analysis/slacs_results.md)):
 
-- **Validierung:** Die berechneten Einsteinmassen reproduzieren die publizierten Werte von Auger et al. (2009)
-  auf 0,004 dex (< 1 %).
-- **Isotherme Galaxien:** Sterngeschwindigkeiten und Linsenmasse passen zusammen,
-  ⟨σ_SDSS/σ_SIE⟩ ≈ 0,95 bei rund 10 % Streuung.
-- **Dunkle Materie:** Innerhalb des Einsteinradius (≈ 4 kpc) besteht etwa die Hälfte der Masse aus Dunkler
-  Materie (Chabrier-IMF). Mit der schwereren Salpeter-IMF wird sie bei einigen Galaxien negativ, die IMF ist dort
-  also zu schwer.
-- **Kosmologie:** Die Kosmographie aus 58 Linsen ist mit Planck-ΛCDM verträglich, schränkt w aber kaum ein.
-  Die Prognose zeigt, dass mit der Methode erst bei Tausenden Linsen (Euclid, LSST) brauchbare Grenzen entstehen.
+- **Validation:** the computed Einstein masses reproduce the published values of Auger et al. (2009) to
+  0.004 dex (< 1 %).
+- **Isothermal galaxies:** stellar velocities and lensing mass agree,
+  $\langle\sigma_\mathrm{SDSS}/\sigma_\mathrm{SIE}\rangle \approx 0.95$ with about 10 % scatter.
+- **Dark matter:** inside the Einstein radius (≈ 4 kpc) roughly half of the mass is dark matter (Chabrier IMF).
+  With the heavier Salpeter IMF it becomes negative for some galaxies, so that IMF is too heavy there.
+- **Cosmology:** cosmography from 58 lenses is consistent with Planck ΛCDM but hardly constrains $w$. The
+  forecast shows that this method only gives useful limits with thousands of lenses (Euclid, LSST).
 
-Im Simulator lässt sich jede SLACS-Linse auswählen („Echte Linse (SLACS)“). Ihr Einsteinradius ist beobachtet,
-die Kosmologie-Regler ändern daher die abgeleitete Masse und den Dunkle-Materie-Anteil.
+Every SLACS lens can be selected in the simulator ("Real lens (SLACS)"). Its Einstein radius is observed, so the
+cosmology sliders change the inferred mass and dark-matter fraction.
 
-## H₀ aus Zeitverzögerungen (H0LiCOW)
+## H₀ from time delays (H0LiCOW)
 
 ```bash
-python scripts/fetch_h0licow.py   # einmalig, öffentliche Distanz-Posteriors (~120 MB, nicht versioniert)
-python analysis/h0licow.py        # Ergebnisse nach analysis/h0licow_results.md
-python figures/build.py           # Abbildungen
+python scripts/fetch_h0licow.py   # once; public distance posteriors (~120 MB, not version-controlled)
+python analysis/h0licow.py        # results to analysis/h0licow_results.md
+python figures/build.py           # figures
 ```
 
-Licht der Bilder eines gelinsten Quasars kommt zu unterschiedlichen Zeiten an. Aus Verzögerung und Linsenmodell
-folgt die Zeitverzögerungs-Distanz D_Δt ∝ 1/H₀. Mit den öffentlichen Posteriors der sechs H0LiCOW-Linsen
-reproduziert lenscape das veröffentlichte Ergebnis **H₀ = 73,3 +1,7 −1,8 km/s/Mpc** (Wong et al. 2020) und liegt
-damit 3,3σ über Planck. Im Simulator zeigt die Bildtabelle die Verzögerungen in Tagen; der Reiter
-„H₀ aus Zeitverzögerungen“ erlaubt, einzelne Linsen weg- oder hinzuzunehmen.
+Light from the images of a lensed quasar arrives at different times. The delay and a lens model give the
+time-delay distance
 
-![H0-Spannung](figures/h0/h0_tension.svg)
+$$
+D_{\Delta t} = (1 + z_\mathrm{d})\,\frac{D_\mathrm{d}\,D_\mathrm{s}}{D_\mathrm{ds}} \propto \frac{1}{H_0} .
+$$
 
-## Galaxienhaufen: Hubble Frontier Fields
+With the public posteriors of the six H0LiCOW lenses, lenscape reproduces the published result
+$H_0 = 73.3^{+1.7}_{-1.8}$ km/s/Mpc (Wong et al. 2020), 3.3σ above Planck. In the simulator the image table
+shows the delays in days; the "H₀ from time delays" tab lets you drop or add individual lenses.
+
+![H0 tension](figures/h0/h0_tension.svg)
+
+## Galaxy clusters: Hubble Frontier Fields
 
 ```bash
-python scripts/fetch_frontier.py   # Massenkarten von MAST (Abell 2744, MACS J0416; Teams CATS, GLAFIC)
-python analysis/frontier.py        # Massenprofile, Einsteinradien, Suchfläche für Galaxien bei z = 9
+python scripts/fetch_frontier.py   # mass maps from MAST (Abell 2744, MACS J0416; teams CATS, GLAFIC)
+python analysis/frontier.py        # mass profiles, Einstein radii, survey area for galaxies at z = 9
 ```
 
-Jede Karte wird zu einer Linse wie die analytischen Modelle. Verglichen werden die Modellgruppen untereinander;
-zur Kontrolle rechnet lenscape die Ablenkwinkel per FFT aus κ nach. Ergebnis (Details in
-[`analysis/frontier_results.md`](analysis/frontier_results.md)): CATS und GLAFIC liefern für beide Haufen nahezu
-denselben effektiven Einsteinradius (Abell 2744: 21,4″ / 21,8″, MACS J0416: 24,7″ / 25,1″ für z_s = 2) und
-innerhalb von 100 kpc dieselbe Masse auf 1–3 %.
+Every map becomes a lens just like the analytic models. The modelling teams are compared with each other; as a
+check, lenscape recomputes the deflection angles from $\kappa$ via FFT. Result (details in
+[`analysis/frontier_results.md`](analysis/frontier_results.md)): CATS and GLAFIC give nearly the same effective
+Einstein radius for both clusters (Abell 2744: 21.4″ / 21.8″, MACS J0416: 24.7″ / 25.1″ for $z_\mathrm{s} = 2$)
+and the same mass within 100 kpc to 1–3 %.
 
 ![Frontier Fields](figures/frontier/frontier_maps.svg)
 
-## Ein echtes HST-Bild modellieren
+## Modelling a real HST image
 
 ```bash
 pip install -e ".[data]"
-python scripts/fetch_hst_slacs.py J0946+1006   # Ausschnitt aus dem HST-Archiv
-python analysis/slacs_hst_fit.py J0946+1006    # Fit und Vergleich mit Bolton et al. (2008)
+python scripts/fetch_hst_slacs.py J0946+1006   # cutout from the HST archive
+python analysis/slacs_hst_fit.py J0946+1006    # fit and comparison with Bolton et al. (2008)
 ```
 
-Vorwärtsmodell aus Linsenlicht, SIE + Scherung, gelinster Quelle und PSF, in drei Stufen gefittet; kosmische
-Strahlung wird maskiert. Am echten HST-Bild von J0946+1006 ergibt das reine SIE θ_E = 1,391″, q = 0,78,
-PA = 162°, nahe an Bolton et al. (2008: 1,38″, 0,81, 159°). An
-synthetischen Bildern findet der Fit θ_E auf besser als 0,1 % wieder; die Linsenmodelle stimmen mit
-*lenstronomy* auf 10⁻¹⁰ überein (`pip install -e ".[validate]"`, dann `pytest`).
+A forward model of lens light, SIE + shear, lensed source and PSF, fitted in three stages; cosmic rays are
+masked. On the real HST image of J0946+1006 the pure SIE gives $\theta_\mathrm{E} = 1.391''$, $q = 0.78$,
+PA = 162°, close to Bolton et al. (2008: 1.38″, 0.81, 159°). On synthetic images the fit recovers
+$\theta_\mathrm{E}$ to better than 0.1 %; the lens models agree with *lenstronomy* to $10^{-10}$
+(`pip install -e ".[validate]"`, then `pytest`).
 
-![HST-Fit](figures/slacs_hst/hst_fit.svg)
+![HST fit](figures/slacs_hst/hst_fit.svg)
 
-### Pixelierte Quellen und zweite Quellebene (J0946+1006, „Jackpot“)
+### Pixelated sources and a second source plane (J0946+1006, "Jackpot")
 
 ```bash
-python analysis/jackpot.py   # ~3 min; Ergebnisse in analysis/jackpot_results.md
+python analysis/jackpot.py   # ~3 min; results in analysis/jackpot_results.md
 ```
 
-`lenscape.pixsrc` rekonstruiert die Quelle frei auf einem Pixelgitter (Bayes'sche semi-lineare Inversion nach
-Suyu et al. 2006); die Regularisierungsstärke und die Linsenparameter folgen aus der Bayes-Evidenz. Für den
-inneren Ring sinkt χ²_red damit von 1,42 (glatte Sérsic-Quelle) auf 1,16.
+`lenscape.pixsrc` reconstructs the source freely on a pixel grid (Bayesian semi-linear inversion after
+Suyu et al. 2006); the regularization strength and the lens parameters follow from the Bayesian evidence. For
+the inner ring this lowers $\chi^2_\mathrm{red}$ from 1.42 (smooth Sérsic source) to 1.16.
 
-Der schwache äußere Ring gehört zu einer zweiten Quelle bei z = 2,035. Das Verhältnis
-η = (D_ds2/D_s2)/(D_ds1/D_s1) hängt nur von Ωₘ und w ab. Die Evidenz zeigt zwei Lösungen; die plausible
-(η = 1,46 bei isothermem Profil) reproduziert Gavazzi et al. (2008). Mit etwas Masse in Quelle 1 sinkt sie auf
-≈ 1,40, nahe an Collett & Auger (2014: 1,404 ± 0,016) und ΛCDM (1,388). Für eine echte Kosmologie-Aussage
-fehlen tiefere Daten und eine Einschränkung der Profilsteigung – die Abbildung zeigt, warum.
+The faint outer ring belongs to a second source at $z = 2.035$. The ratio
+
+$$
+\eta = \frac{D_\mathrm{ds_2}/D_\mathrm{s_2}}{D_\mathrm{ds_1}/D_\mathrm{s_1}}
+$$
+
+depends only on $\Omega_\mathrm{m}$ and $w$. The evidence shows two solutions; the plausible one
+($\eta = 1.46$ for an isothermal profile) reproduces Gavazzi et al. (2008). With some mass in source 1 it drops to
+≈ 1.40, close to Collett & Auger (2014: 1.404 ± 0.016) and ΛCDM (1.388). A real statement about cosmology needs
+deeper data and a constraint on the profile slope – the figure shows why.
 
 ![Jackpot](figures/jackpot/jackpot_eta.svg)
 
-## Web: Foto-Linse
+## Web: photo lens
 
-`web/index.html` ist eine einzelne Datei ohne Abhängigkeiten. Im Browser öffnen, Bild hochladen (oder per
-Drag & Drop), Linse mit der Maus verschieben. Gerechnet wird pro Pixel auf der Grafikkarte (WebGL2-Shader,
-mit CPU-Rückfall); als Linse stehen Punktmasse bzw. Schwarzes Loch und eine elliptische Galaxie (SIE) zur Wahl.
-Für die eigene Website lässt sich die Seite per `<iframe src="…/index.html?embed">` ohne Kopfzeile einbetten. Die Regler steuern Masse, Abstände, Bildbreite und die
-**Lichtgeschwindigkeit** (θ_E ∝ 1/c). Szenarien: Galaxie, Sonne wie bei Eddington 1919, dieselbe Sonne bei
-1 % von c, ein murmelgroßes Schwarzes Loch im Zimmer.
+`web/index.html` is a single file. Open it in the browser, upload an image (or drag & drop it) and move the lens
+with the mouse. Everything is computed per pixel on the GPU (WebGL2 shader, with a CPU fallback); the lens is a
+point mass/black hole or an elliptical galaxy (SIE). The formulas are typeset with KaTeX from a CDN; without
+network access the page still works. To embed it in your own website without the header use
+`<iframe src="…/index.html?embed">`. The sliders control mass, distances, image width and the
+**speed of light** ($\theta_\mathrm{E} \propto 1/c$). Scenarios: a galaxy, the Sun as in Eddington's 1919
+eclipse, the same Sun at 1 % of $c$, and a marble-sized black hole in your room.
 
 ## Tests
 
@@ -181,18 +200,19 @@ Für die eigene Website lässt sich die Seite per `<iframe src="…/index.html?e
 pytest
 ```
 
-Die Tests prüfen unter anderem die Poisson-Gleichung ∇·α = 2κ für jedes Modell, die Rotationsfreiheit von α,
-analytische Bildpositionen und Vergrößerungen der SIS und M(<θ_E) = M für eine Punktmasse.
+Among other things the tests check the Poisson equation $\nabla\cdot\vec\alpha = 2\kappa$ for every model, that
+$\vec\alpha$ is curl-free, analytic image positions and magnifications of the SIS, and
+$M(<\theta_\mathrm{E}) = M$ for a point mass.
 
-## Fahrplan
+## Roadmap
 
-- [x] Simulator und Kosmologie (Punktmasse, SIS, SIE, NFW, Scherung, Kaustiken, Bildlöser)
-- [x] Web-Demo „eigenes Bild verbiegen“
-- [x] **Starke Linsen aus echten Daten**: SLACS-Katalog, Massen, Dunkle-Materie-Anteil, Kosmographie
-- [x] **Galaxienhaufen**: Frontier-Fields-Massenkarten einlesen und vergleichen (Daten per Skript)
-- [x] **Zeitverzögerungen**: Fermat-Potential, H₀ aus den sechs H0LiCOW-Linsen
-- [x] **Modell-Fit**: SIE+Scherung direkt an HST-Bilder, Abgleich mit `lenstronomy`
-- [x] **Web-Demo** mit WebGL2 und Einbettungsmodus
-- [x] **Pixelierte Quellen** (Suyu et al. 2006) und **zweite Quellebene** des Jackpot-Systems
-- [ ] Elliptisches Potenzgesetz-Profil (freie Steigung γ′) für die Jackpot-Kosmologie
-- [ ] **Schwache Linsen**: Scherungskataloge bzw. Planck-CMB-Lensing-Karte, Ωₘ und σ₈
+- [x] Simulator and cosmology (point mass, SIS, SIE, NFW, shear, caustics, image solver)
+- [x] Web demo "bend your own image"
+- [x] **Strong lenses from real data**: SLACS catalogue, masses, dark-matter fraction, cosmography
+- [x] **Galaxy clusters**: read and compare Frontier Fields mass maps (data via script)
+- [x] **Time delays**: Fermat potential, H₀ from the six H0LiCOW lenses
+- [x] **Model fitting**: SIE + shear directly on HST images, cross-check with `lenstronomy`
+- [x] **Web demo** with WebGL2 and embedding mode
+- [x] **Pixelated sources** (Suyu et al. 2006) and the **second source plane** of the Jackpot system
+- [ ] Elliptical power-law profile (free slope γ′) for the Jackpot cosmology
+- [ ] **Weak lensing**: shear catalogues or the Planck CMB lensing map, Ωₘ and σ₈
