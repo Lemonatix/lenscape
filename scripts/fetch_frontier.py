@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Lädt Massenmodelle der Hubble Frontier Fields (HFF) aus dem MAST-Archiv.
+"""Download Hubble Frontier Fields (HFF) mass models from the MAST archive.
 
-    python scripts/fetch_frontier.py                     # Abell 2744 und MACS J0416, Teams CATS + GLAFIC
-    python scripts/fetch_frontier.py abell2744 cats      # ein Haufen, ein Team
+    python scripts/fetch_frontier.py                     # Abell 2744 and MACS J0416, teams CATS + GLAFIC
+    python scripts/fetch_frontier.py abell2744 cats      # one cluster, one team
 
-Für jedes Modell wird die neueste Version gesucht und die Karten
-kappa, gamma sowie die Ablenkwinkel (x/y) nach data/frontier/<haufen>/<team>/
-gespeichert. Die Karten sind auf D_ds/D_s = 1 normiert (Quelle im Unendlichen).
+For each model the newest version is located, and the kappa and gamma maps as
+well as the deflection angles (x/y) are saved to data/frontier/<cluster>/<team>/.
+The maps are normalized to D_ds/D_s = 1 (source at infinity).
 
-Quelle: https://archive.stsci.edu/prepds/frontier/lensmodels/
-Zitieren: Lotz et al. 2017 (HFF) und die jeweilige Modellgruppe (siehe README im Modellordner).
-Nur Standardbibliothek; die Dateien (je einige 10 MB) werden nicht versioniert.
+Source: https://archive.stsci.edu/prepds/frontier/lensmodels/
+Cite: Lotz et al. 2017 (HFF) and the respective modelling team (see the README in the model folder).
+Standard library only; the files (a few 10 MB each) are not version-controlled.
 """
 
 from __future__ import annotations
@@ -48,12 +48,12 @@ def fetch(cluster: str, team: str) -> None:
     try:
         entries = links(base)
     except Exception as e:  # noqa: BLE001
-        print(f"{cluster}/{team}: Verzeichnis nicht lesbar ({e}) -> {base}")
+        print(f"{cluster}/{team}: directory not readable ({e}) -> {base}")
         return
     versions = sorted((e.rstrip("/") for e in entries if e.endswith("/") and e.lower().startswith("v")),
                       key=version_key)
     if not versions:
-        print(f"{cluster}/{team}: keine Versionsordner gefunden. Inhalt: {entries[:20]}")
+        print(f"{cluster}/{team}: no version folders found. Contents: {entries[:20]}")
         return
     v = versions[-1]
     files = links(base + v + "/")
@@ -61,11 +61,11 @@ def fetch(cluster: str, team: str) -> None:
     readme = [f for f in files if "readme" in f.lower()]
     out = OUT / cluster / team
     out.mkdir(parents=True, exist_ok=True)
-    print(f"{cluster}/{team} {v}: {', '.join(chosen) or 'keine passenden Karten'}")
+    print(f"{cluster}/{team} {v}: {', '.join(chosen) or 'no matching maps'}")
     for f in chosen + readme[:1]:
         target = out / f
         if target.exists() and target.stat().st_size > 0:
-            print(f"  {f}: vorhanden")
+            print(f"  {f}: present")
             continue
         data = get(base + v + "/" + f)
         target.write_bytes(data)
