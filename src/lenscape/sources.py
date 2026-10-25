@@ -1,4 +1,4 @@
-"""Flächenhelligkeitsprofile für Hintergrundquellen (Winkel in arcsec)."""
+"""Surface-brightness profiles of background sources (angles in arcsec)."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ class GaussianSource(Source):
 
 @dataclass
 class SersicSource(Source):
-    """Sérsic-Profil I(r) = I_e exp(-b_n [(r/R_e)^(1/n) - 1]); n=1 Scheibe, n=4 de Vaucouleurs."""
+    """Sersic profile I(r) = I_e exp(-b_n [(r/R_e)^(1/n) - 1]); n=1 disk, n=4 de Vaucouleurs."""
 
     x0: float = 0.0
     y0: float = 0.0
@@ -56,7 +56,7 @@ class SersicSource(Source):
 
 @dataclass
 class ImageSource(Source):
-    """Ein beliebiges Bild als Quelle; ``extent`` = Kantenlänge in arcsec, zentriert auf (x0, y0)."""
+    """An arbitrary image as source; ``extent`` = side length in arcsec, centred on (x0, y0)."""
 
     image: np.ndarray
     extent: float = 2.0
