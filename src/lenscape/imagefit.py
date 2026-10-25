@@ -1,22 +1,22 @@
-"""Linsenmodell direkt an ein Bild fitten (Vorwärtsmodellierung).
+"""Fit a lens model directly to an image (forward modelling).
 
-Modell eines Pixels:
+Model of one pixel:
 
     I(θ) = PSF * [ A_L · S_L(θ)  +  A_S · S_S(β(θ)) ] + b
 
-* S_L: Sérsic-Profil der Linsengalaxie (Licht)
-* S_S: Sérsic-Profil der Quelle, ausgewertet an β = θ − α(θ) (SIE + externe Scherung)
-* A_L, A_S, b: Helligkeiten und Himmelshintergrund -- werden für jeden Satz
-  nichtlinearer Parameter *linear* gelöst (gewichtete kleinste Quadrate)
-* PSF: Gauß (ACS/WFC F814W: FWHM ≈ 0,1″), Faltung auf einem feineren Gitter
+* S_L: Sérsic profile of the lens galaxy (light)
+* S_S: Sérsic profile of the source, evaluated at β = θ − α(θ) (SIE + external shear)
+* A_L, A_S, b: amplitudes and sky background -- solved *linearly* for every set
+  of non-linear parameters (weighted least squares)
+* PSF: Gaussian (ACS/WFC F814W: FWHM ≈ 0.1″), convolution on a finer grid
 
-Elliptizitäten werden als (e1, e2) mit q = (1−|e|)/(1+|e|), φ = ½·atan2(e2, e1)
-parametrisiert, damit es keine Winkelsprünge gibt.
+Ellipticities are parametrized as (e1, e2) with q = (1−|e|)/(1+|e|),
+φ = ½·atan2(e2, e1), so that there are no angle wraps.
 
-Gefittet wird in drei Stufen (wie in der Praxis üblich):
-1. nur Linsenlicht, Ringbereich maskiert
-2. Masse + Quelle bei festgehaltenem Lichtprofil, mehrere Startpunkte
-3. alles gemeinsam
+The fit proceeds in three stages (as is common practice):
+1. lens light only, ring region masked
+2. mass + source with the light profile held fixed, several starting points
+3. everything jointly
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from .lenses import SIE, ExternalShear
 from .sources import _elliptical_radius
 
 
-# ---------------------------------------------------------------- Hilfsfunktionen
+# ---------------------------------------------------------------- helpers
 def q_phi_from_e(e1: float, e2: float) -> tuple[float, float]:
     e = min(np.hypot(e1, e2), 0.95)
     return (1 - e) / (1 + e), 0.5 * np.arctan2(e2, e1)
@@ -44,7 +44,7 @@ def e_from_q_phi(q: float, phi: float) -> tuple[float, float]:
 
 
 def sersic_unit(x, y, x0, y0, R_e, n, e1, e2):
-    """Sérsic-Profil mit Amplitude 1 bei R_e."""
+    """Sérsic profile with amplitude 1 at R_e."""
     q, phi = q_phi_from_e(e1, e2)
     r = _elliptical_radius(x, y, x0, y0, q, phi)
     b_n = gammaincinv(2 * n, 0.5)
@@ -61,11 +61,11 @@ def gaussian_psf(fwhm_arcsec: float, pixscale: float, half_size: int | None = No
 
 # ---------------------------------------------------------------- Parameter
 PARAMS = [
-    # Linsenlicht
+    # lens light
     "xl", "yl", "Rl", "nl", "e1l", "e2l",
-    # Masse (Zentrum = Lichtzentrum)
+    # mass (centre = light centre)
     "thetaE", "e1m", "e2m", "g1", "g2",
-    # Quelle
+    # source
     "xs", "ys", "Rs", "ns", "e1s", "e2s",
 ]
 LIGHT = PARAMS[:6]
@@ -89,7 +89,7 @@ class FitResult:
     model: np.ndarray
     lens_light: np.ndarray
     lensed_source: np.ndarray
-    residual: np.ndarray            # (Daten − Modell) / σ
+    residual: np.ndarray            # (data − model) / σ
     history: list = field(default_factory=list)
 
     @property
@@ -102,7 +102,7 @@ class FitResult:
 
 
 class LensImageModel:
-    """Vorwärtsmodell auf einem quadratischen Ausschnitt mit Pixelgröße ``pixscale``."""
+    """Forward model on a square cutout with pixel size ``pixscale``."""
 
     def __init__(self, shape: tuple[int, int], pixscale: float, psf_fwhm: float = 0.1, supersample: int = 2):
         self.shape = shape
@@ -111,14 +111,14 @@ class LensImageModel:
         ny, nx = shape
         fine = pixscale / supersample
         self.psf = gaussian_psf(psf_fwhm, fine)
-        # Rand in ganzen Bildpixeln, damit die Faltung auch Licht von außerhalb erfasst
+        # border in whole image pixels so that the convolution also picks up light from outside
         self.pad = int(np.ceil((self.psf.shape[0] // 2) / supersample)) + 1
         NY, NX = ny + 2 * self.pad, nx + 2 * self.pad
         xs = (np.arange(NX * supersample) - (NX * supersample - 1) / 2) * fine
         ys = (np.arange(NY * supersample) - (NY * supersample - 1) / 2) * fine
         self.X, self.Y = np.meshgrid(xs, ys)
 
-    # ---------------------------------------------------------------- Bausteine
+    # ---------------------------------------------------------------- building blocks
     def _bin(self, img):
         s, p = self.ss, self.pad
         ny, nx = self.shape
@@ -139,7 +139,7 @@ class LensImageModel:
         return self._convolve(light), self._convolve(src)
 
     def solve_linear(self, p, data, w, use_source=True):
-        """Amplituden (A_L, A_S, b) per gewichteten kleinsten Quadraten."""
+        """Amplitudes (A_L, A_S, b) via weighted least squares."""
         L, S = self.components(p)
         cols = [L.ravel(), S.ravel(), np.ones(L.size)] if use_source else [L.ravel(), np.ones(L.size)]
         A = np.column_stack(cols) * w.ravel()[:, None]
@@ -148,7 +148,7 @@ class LensImageModel:
             aL, aS, b = coef
         else:
             (aL, b), aS = coef, 0.0
-        aL, aS = max(aL, 0.0), max(aS, 0.0)  # physikalisch: keine negativen Helligkeiten
+        aL, aS = max(aL, 0.0), max(aS, 0.0)  # physical: no negative brightness
         return aL * L, aS * S, b, {"lens_light": aL, "source": aS, "background": b}
 
 
@@ -159,7 +159,7 @@ def _vec(p: dict, names: list[str]) -> np.ndarray:
 def _bounds(names, p0):
     lo = np.array([BOUNDS[k][0] for k in names])
     hi = np.array([BOUNDS[k][1] for k in names])
-    # Positionsgrenzen relativ zum Startwert der Lichtmitte
+    # position bounds relative to the initial light centre
     return lo, hi
 
 
@@ -167,10 +167,10 @@ def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E
                    q0: float = 0.8, phi0: float = 0.0, psf_fwhm: float = 0.1, supersample: int = 2,
                    n_starts: int = 8, seed: int = 0, verbose: bool = False,
                    fixed: dict[str, float] | None = None) -> FitResult:
-    """Dreistufiger Fit (siehe Moduldokumentation). Koordinaten relativ zur Bildmitte.
+    """Three-stage fit (see module docs). Coordinates relative to the image centre.
 
-    Pixel mit ``sigma = inf`` (oder NaN-Daten) werden ignoriert, z. B. kosmische Strahlung.
-    ``fixed`` hält Parameter fest, z. B. ``{"g1": 0, "g2": 0}`` für ein reines SIE ohne Scherung.
+    Pixels with ``sigma = inf`` (or NaN data) are ignored, e.g. cosmic rays.
+    ``fixed`` holds parameters fixed, e.g. ``{"g1": 0, "g2": 0}`` for a pure SIE without shear.
     """
     fixed = dict(fixed or {})
     free = lambda names: [k for k in names if k not in fixed]  # noqa: E731
@@ -197,7 +197,7 @@ def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E
             return (r if mask is None else r * mask).ravel()
         return f
 
-    # ---- Stufe 1: Linsenlicht, Ring maskiert
+    # ---- stage 1: lens light, ring masked
     ny, nx = data.shape
     yy, xx = (np.mgrid[0:ny, 0:nx] - np.array([(ny - 1) / 2, (nx - 1) / 2])[:, None, None]) * pixscale
     rr = np.hypot(xx, yy)
@@ -208,9 +208,9 @@ def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E
     p.update(zip(LIGHT_, sol.x))
     hist.append(("Licht", 2 * sol.cost))
     if verbose:
-        print("Stufe 1 (Licht):", {k: round(p[k], 3) for k in LIGHT_})
+        print("stage 1 (light):", {k: round(p[k], 3) for k in LIGHT_})
 
-    # ---- Stufe 2: Masse + Quelle, mehrere Starts
+    # ---- stage 2: mass + source, several starts
     lo, hi = _bounds(MS_, p)
     best = None
     for k in range(n_starts):
@@ -224,11 +224,11 @@ def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E
         if best is None or sol.cost < best.cost:
             best = sol
         if verbose:
-            print(f"Stufe 2, Start {k}: chi2 = {2 * sol.cost:.1f}, thetaE = {sol.x[MS_.index("thetaE")]:.3f}")
+            print(f"stage 2, start {k}: chi2 = {2 * sol.cost:.1f}, thetaE = {sol.x[MS_.index("thetaE")]:.3f}")
     p.update(zip(MS_, best.x))
     hist.append(("Masse+Quelle", 2 * best.cost))
 
-    # ---- Stufe 3: alles gemeinsam
+    # ---- stage 3: everything jointly
     lo, hi = _bounds(ALL_, p)
     sol = least_squares(residual_fn(ALL_), np.clip(_vec(p, ALL_), lo + 1e-6, hi - 1e-6),
                         bounds=(lo, hi), x_scale="jac", max_nfev=600)
@@ -242,18 +242,18 @@ def fit_lens_image(data: np.ndarray, sigma: np.ndarray, pixscale: float, theta_E
 
 
 def estimate_noise(data: np.ndarray, exptime: float | None = None, border: int = 10) -> np.ndarray:
-    """σ pro Pixel: Hintergrundrauschen plus Poisson-Anteil (bei e⁻/s-Bildern).
+    """σ per pixel: background noise plus Poisson term (for e⁻/s images).
 
-    Das Hintergrundrauschen wird robust (MAD) aus dem Bildrand geschätzt, nachdem
-    ein glatter Verlauf (Medianfilter, 9 px) abgezogen wurde -- sonst würden
-    Ausläufer der Galaxie das Rauschen überschätzen.
+    The background noise is estimated robustly (MAD) from the image border after
+    subtracting a smooth trend (median filter, 9 px) -- otherwise the outskirts
+    of the galaxy would inflate the noise estimate.
     """
     from scipy.ndimage import median_filter
 
     hp = data - median_filter(data, size=9, mode="reflect")
     edge = np.concatenate([hp[:border].ravel(), hp[-border:].ravel(),
                            hp[:, :border].ravel(), hp[:, -border:].ravel()])
-    # Varianz des Hochpasses ≈ σ² (1 + 1/81) für weißes Rauschen
+    # variance of the high-pass ≈ σ² (1 + 1/81) for white noise
     sig_bkg = 1.4826 * np.median(np.abs(edge - np.median(edge))) / np.sqrt(1 + 1 / 81)
     var = np.full(data.shape, sig_bkg**2)
     if exptime and exptime > 0:
