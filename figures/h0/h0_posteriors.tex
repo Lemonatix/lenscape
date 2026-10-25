@@ -11,7 +11,7 @@
       xtick distance=5,
       yticklabels={}, ylabel={$p(H_0)$},
       xlabel={$H_0$ \quad [km\,s$^{-1}$\,Mpc$^{-1}$]},
-      title={Sechs Linsen, sechs unabhängige Messungen (flaches $\Lambda$CDM)},
+      title={Six lenses, six independent measurements (flat $\Lambda$CDM)},
       legend style={at={(1.03,1)}, anchor=north west, font=\scriptsize},
       legend columns=1,
       no markers,
@@ -26,7 +26,7 @@
     \addplot[lsC4, line width=0.9pt] table[x=H0, y=J] {data/h0_posteriors.dat}; \addlegendentry{J1206$+$4332}
     \addplot[lsC5, line width=0.9pt] table[x=H0, y=W] {data/h0_posteriors.dat}; \addlegendentry{WFI2033$-$4723}
     \addplot[lsC6, line width=0.9pt] table[x=H0, y=P] {data/h0_posteriors.dat}; \addlegendentry{PG1115$+$080}
-    \addplot[lsInk, line width=1.8pt] table[x=H0, y=all] {data/h0_posteriors.dat}; \addlegendentry{\textbf{kombiniert}}
+    \addplot[lsInk, line width=1.8pt] table[x=H0, y=all] {data/h0_posteriors.dat}; \addlegendentry{\textbf{combined}}
 
     \node[font=\scriptsize, text=lsRed!80!black, anchor=south east] at (axis cs:{\planckmed-\planckerr},0.275) {Planck};
     \node[font=\scriptsize, text=lsGreen!70!black, anchor=south west] at (axis cs:{\shoesmed+\shoeserr},0.275) {SH0ES};
