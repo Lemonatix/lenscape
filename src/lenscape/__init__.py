@@ -1,4 +1,4 @@
-"""lenscape -- Gravitationslinsen modellieren, simulieren und auswerten."""
+"""lenscape -- model, simulate and analyse gravitational lenses."""
 
 from .cosmology import LensGeometry, make_cosmology
 from .lenses import NFW, SIE, SIS, CompositeLens, ExternalShear, PointMass, einstein_radius
