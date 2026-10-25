@@ -1,9 +1,9 @@
-"""Bildpositionen einer punktförmigen Quelle finden.
+"""Find the image positions of a point source.
 
-Verfahren (Schneider, Ehlers & Falco; "triangle mapping"):
-1. Bildebene in Dreiecke zerlegen und deren Ecken in die Quellebene abbilden.
-2. Alle Dreiecke markieren, deren Bild die Quellposition beta enthält.
-3. Jede Kandidatenposition mit einem Newton-Verfahren auf beta verfeinern.
+Method (Schneider, Ehlers & Falco; "triangle mapping"):
+1. Tile the image plane with triangles and map their corners to the source plane.
+2. Flag every triangle whose image contains the source position beta.
+3. Refine each candidate with a Newton solver onto beta.
 """
 
 from __future__ import annotations
@@ -26,12 +26,12 @@ def _in_triangle(px, py, ax, ay, bx, by, cx, cy):
 
 def find_images(lens: Lens, beta_x: float, beta_y: float, half_width: float = 4.0,
                 n: int = 400, tol: float = 1e-10):
-    """Alle Bilder (x, y, Vergrößerung) der Punktquelle bei (beta_x, beta_y)."""
+    """All images (x, y, magnification) of the point source at (beta_x, beta_y)."""
     x, y = make_grid(half_width, n)
     bx, by = lens.ray_shoot(x, y)
 
     cands = []
-    # zwei Dreiecke pro Gitterzelle
+    # two triangles per grid cell
     for (i0, j0), (i1, j1), (i2, j2) in (
         ((0, 0), (0, 1), (1, 0)),
         ((1, 1), (1, 0), (0, 1)),
