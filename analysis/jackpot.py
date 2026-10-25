@@ -168,7 +168,11 @@ def main() -> int:
                 if sb.sum() > 0:
                     inverter.grid.x0 = float((bx_ * sb).sum() / sb.sum())
                     inverter.grid.y0 = float((by_ * sb).sum() / sb.sum())
-            return inverter.invert(fn)
+            r = inverter.invert(fn)
+            # the tracking grid is mutated for every η: keep a copy of the one used here
+            gr = inverter.grid
+            r.grid = SourceGrid(gr.n, gr.half, gr.x0, gr.y0)
+            return r
 
         def run(es):
             res = [one(e) for e in es]
@@ -279,6 +283,7 @@ def main() -> int:
               "etaca": 1.404, "etacaerr": 0.016}
     write_macros(OUT / "macros.tex", macros)
     rmain = base
+    gs2 = rmain["res"].grid  # source grid of the best inversion for source 2
 
     # ------------------------------------------------ images for the figure
     lo, hi = np.percentile(img[~bad], [5, 99.7])
@@ -300,7 +305,7 @@ def main() -> int:
     write_macros(OUT / "extent.tex", {
         "half": HALF, "xl": xl, "yl": yl,
         "sax": g1.x0 - g1.half, "sbx": g1.x0 + g1.half, "say": g1.y0 - g1.half, "sby": g1.y0 + g1.half,
-        "tax": g2.x0 - g2.half, "tbx": g2.x0 + g2.half, "tay": g2.y0 - g2.half, "tby": g2.y0 + g2.half,
+        "tax": gs2.x0 - gs2.half, "tbx": gs2.x0 + gs2.half, "tay": gs2.y0 - gs2.half, "tby": gs2.y0 + gs2.half,
     })
 
     # ------------------------------------------------ summary
