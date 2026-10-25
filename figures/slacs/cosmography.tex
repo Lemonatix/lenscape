@@ -14,7 +14,7 @@
       axis on top,
       legend pos=south east,
     ]
-    \nextgroupplot[title={Echte Daten: SLACS}]
+    \nextgroupplot[title={Real data: SLACS}]
     \input{data/cosmo_slacs_regions.tex}
     \addlegendimage{area legend, slacs68}
     \addlegendentry{68\,\%}
@@ -23,20 +23,20 @@
     \addplot[only marks, mark=star, mark size=3.5pt, lsInk, line width=0.8pt] coordinates {(\planckOm,-1)};
     \addlegendentry{Planck $\Lambda$CDM}
     \node[font=\scriptsize, text=lsInk, anchor=north west, align=left, fill=white, fill opacity=0.8, text opacity=1]
-      at (rel axis cs:0.03,0.97) {$N = \nlenses$ Linsen\\ Planck: $\Delta\chi^2 = \pgfmathprintnumber[fixed,precision=2]{\dchiplanck}$};
+      at (rel axis cs:0.03,0.97) {$N = \nlenses$ lenses\\ Planck: $\Delta\chi^2 = \pgfmathprintnumber[fixed,precision=2]{\dchiplanck}$};
 
-    \nextgroupplot[title={Prognose: 2000 Linsen (Euclid/LSST)}]
+    \nextgroupplot[title={Forecast: 2000 lenses (Euclid/LSST)}]
     \input{data/cosmo_forecast_regions.tex}
     \addlegendimage{area legend, forecast68}
     \addlegendentry{68\,\%}
     \addlegendimage{area legend, forecast95}
     \addlegendentry{95\,\%}
     \addplot[only marks, mark=star, mark size=3.5pt, lsInk, line width=0.8pt] coordinates {(\planckOm,-1)};
-    \addlegendentry{Wahrheit}
+    \addlegendentry{truth}
     \node[font=\scriptsize, text=lsInk, anchor=north west, fill=white, fill opacity=0.8, text opacity=1]
-      at (rel axis cs:0.03,0.97) {gleiches Verfahren, simulierte Daten};
+      at (rel axis cs:0.03,0.97) {same method, simulated data};
   \end{groupplot}
   \node[font=\small\bfseries, text=lsInk, anchor=south] at ($(group c1r1.north)!0.5!(group c2r1.north)+(0,0.75cm)$)
-    {Kosmographie aus $\theta_\mathrm{E}$ und $\sigma$ im flachen $w$CDM};
+    {Cosmography from $\theta_\mathrm{E}$ and $\sigma$ in flat $w$CDM};
 \end{tikzpicture}
 \end{document}
