@@ -17,12 +17,12 @@ def test_requires_ordered_redshifts():
 def test_distances_positive_and_not_additive():
     g = LensGeometry(0.3, 1.0)
     assert g.D_d.value > 0 and g.D_s.value > 0 and g.D_ds.value > 0
-    # Winkeldurchmesser-Distanzen addieren sich nicht
+    # angular diameter distances do not add up
     assert g.D_d.value + g.D_ds.value > g.D_s.value
 
 
 def test_sigma_crit_order_of_magnitude():
-    # typische galaxienskalige Linse: einige 1000 M_sun/pc^2
+    # typical galaxy-scale lens: a few 1000 M_sun/pc^2
     g = LensGeometry(0.3, 1.0)
     assert 1e3 < g.sigma_crit.value < 1e4
 
@@ -34,7 +34,7 @@ def test_sis_roundtrip():
 
 
 def test_point_mass_mass_inside_einstein_radius():
-    # Für eine Punktmasse muss M(<theta_E) genau ihre Masse ergeben
+    # for a point mass, M(<theta_E) must equal its mass exactly
     g = LensGeometry(0.5, 2.0)
     M = 1e12
     th = g.theta_E_point_mass(M)
