@@ -1,17 +1,17 @@
-"""Kosmographie mit Einsteinradien: Dunkle Energie aus einer Linsenstichprobe.
+"""Cosmography with Einstein radii: dark energy from a lens sample.
 
-Für eine isotherme Linse gilt
+For an isothermal lens
 
     theta_E = 4 pi (sigma_SIE / c)^2 * D_ds / D_s .
 
-Misst man theta_E (aus dem Bild) und sigma (aus dem Spektrum), folgt pro Linse
-ein *beobachtetes* Distanzverhältnis
+Measuring theta_E (from the image) and sigma (from the spectrum) gives an
+*observed* distance ratio for each lens
 
     R_obs = theta_E c^2 / (4 pi sigma^2) = f_E^2 * D_ds/D_s (z_d, z_s; Omega_m, w).
 
-f_E = sigma_SIE / sigma ~ 1 fasst zusammen, wie gut die Stern-Geschwindigkeits-
-dispersion die Gesamtmasse beschreibt; es wird als freier Parameter mitgefittet.
-Im flachen Universum ist D_ds/D_s = 1 - chi_d/chi_s, unabhängig von H0.
+f_E = sigma_SIE / sigma ~ 1 captures how well the stellar velocity dispersion
+traces the total mass; it is fitted as a free parameter. In a flat universe
+D_ds/D_s = 1 - chi_d/chi_s, independent of H0.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ def observed_distance_ratio(theta_E_arcsec, sigma_kms):
 
 
 def _comoving_table(Om, w, z_max, n=2048):
-    """chi(z) (in Einheiten c/H0) für flaches wCDM auf einem z-Gitter."""
+    """chi(z) (in units of c/H0) for flat wCDM on a z grid."""
     z = np.linspace(0.0, z_max, n)
     E = np.sqrt(Om * (1 + z) ** 3 + (1 - Om) * (1 + z) ** (3 * (1 + w)))
     inv = 1.0 / E
@@ -39,7 +39,7 @@ def _comoving_table(Om, w, z_max, n=2048):
 
 
 def model_distance_ratio(z_d, z_s, Om, w):
-    """D_ds / D_s im flachen wCDM."""
+    """D_ds / D_s in flat wCDM."""
     z_d = np.asarray(z_d, float)
     z_s = np.asarray(z_s, float)
     z, chi = _comoving_table(Om, w, float(np.max(z_s)) + 0.01)
@@ -50,11 +50,11 @@ def model_distance_ratio(z_d, z_s, Om, w):
 
 @dataclass
 class GridResult:
-    Om: np.ndarray        # Gitterachse Omega_m
-    w: np.ndarray         # Gitterachse w
-    lnL: np.ndarray       # Profil-Log-Likelihood, Form (len(w), len(Om))
-    lnf2: np.ndarray      # best-fit ln f_E^2 je Gitterpunkt
-    sigma_int: np.ndarray  # best-fit intrinsische Streuung je Gitterpunkt
+    Om: np.ndarray        # grid axis Omega_m
+    w: np.ndarray         # grid axis w
+    lnL: np.ndarray       # profile log-likelihood, shape (len(w), len(Om))
+    lnf2: np.ndarray      # best-fit ln f_E^2 per grid point
+    sigma_int: np.ndarray  # best-fit intrinsic scatter per grid point
 
     @property
     def best(self) -> dict:
@@ -73,11 +73,11 @@ class GridResult:
 def fit_flat_wcdm(theta_E, sigma, e_sigma, z_d, z_s, e_theta_frac: float = 0.05,
                   Om=np.linspace(0.02, 1.0, 50), w=np.linspace(-3.0, 0.0, 61),
                   sigma_int=np.linspace(0.0, 0.4, 41)) -> GridResult:
-    """Gitter-Likelihood in (Omega_m, w) für flaches wCDM.
+    """Grid likelihood in (Omega_m, w) for flat wCDM.
 
-    Gearbeitet wird in ln R: ln R_obs = ln(D_ds/D_s) + ln f_E^2 + Rauschen mit
-    Varianz s_i^2 = (2 e_sigma/sigma)^2 + e_theta_frac^2 + sigma_int^2.
-    ln f_E^2 wird analytisch, sigma_int numerisch herausprofiliert.
+    Works in ln R: ln R_obs = ln(D_ds/D_s) + ln f_E^2 + noise with variance
+    s_i^2 = (2 e_sigma/sigma)^2 + e_theta_frac^2 + sigma_int^2.
+    ln f_E^2 is profiled out analytically, sigma_int numerically.
     """
     y = np.log(observed_distance_ratio(theta_E, sigma))
     s_meas2 = (2 * np.asarray(e_sigma) / np.asarray(sigma)) ** 2 + e_theta_frac**2
