@@ -1,19 +1,19 @@
-"""SDSS J0946+1006 ("Jackpot"): zwei Quellebenen -> Kosmologie.
+"""SDSS J0946+1006 ("Jackpot"): two source planes -> cosmology.
 
     python analysis/jackpot.py
 
-1. Parametrischer Fit (Sérsic-Licht, SIE + Scherung) -> Linsenlicht und Startmodell
-2. Innerer Ring (Quelle 1, z = 0,609): pixelierte Quelle, Linsenparameter über die
-   Bayes-Evidenz (Suyu et al. 2006)
-3. Äußerer Ring (Quelle 2, z = 2,035; Smith & Collett 2021): dieselbe Linse, aber für
-   die fernere Quelle um den Faktor
+1. Parametric fit (Sérsic light, SIE + shear) -> lens light and starting model
+2. Inner ring (source 1, z = 0.609): pixelated source, lens parameters via the
+   Bayesian evidence (Suyu et al. 2006)
+3. Outer ring (source 2, z = 2.035; Smith & Collett 2021): the same lens, but for
+   the more distant source deflecting more strongly by the factor
 
        η = (D_ds2 / D_s2) / (D_ds1 / D_s1)
 
-   stärker ablenkend; optional lenkt Quelle 1 (als SIS) das Licht von Quelle 2 zusätzlich ab
-   (Mehrfachebenen-Linsengleichung). η hängt nur von Ωₘ und w ab, nicht von H₀.
+   optionally, source 1 (as an SIS) additionally deflects the light of source 2
+   (multi-plane lens equation). η depends only on Ωₘ and w, not on H₀.
 
-Vergleich: Collett & Auger (2014) messen 1/β = η = 1,404 ± 0,016 (mit Masse von Quelle 1).
+Comparison: Collett & Auger (2014) measure 1/β = η = 1.404 ± 0.016 (including the mass of source 1).
 """
 
 from __future__ import annotations
@@ -43,8 +43,8 @@ from lenscape.tikzexport import write_macros, write_table  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "figures" / "jackpot" / "data"
 NAME = "J0946+1006"
-Z_D, Z_S1, Z_S2 = 0.222, 0.609, 2.035   # Linse/Quelle 1: Bolton+08; Quelle 2: Smith & Collett (2021)
-HALF = 3.4                               # Ausschnitt ±3,4″
+Z_D, Z_S1, Z_S2 = 0.222, 0.609, 2.035   # lens/source 1: Bolton+08; source 2: Smith & Collett (2021)
+HALF = 3.4                               # cutout ±3.4″
 PIX_PSF_FWHM = 0.1
 
 
@@ -70,7 +70,7 @@ def main() -> int:
     img = cut - bkg
     xc, yc = i0 + (n - 1) / 2, j0 + (n - 1) / 2
 
-    # Ausreißer (Strahlung, Defekte) maskieren
+    # mask outliers (cosmic rays, defects)
     hp = cut - median_filter(cut, size=5, mode="reflect")
     bad = binary_dilation((hp > 5 * sigma) | (cut == 0), iterations=1)
     sig = np.where(bad, np.inf, sigma)
@@ -79,13 +79,13 @@ def main() -> int:
     row = cat[cat["name"] == NAME][0]
     phi0 = pixel_angle_of_pa(wcs, xc, yc, float(row["pa"]))
 
-    # ------------------------------------------------ 1. parametrisch (Licht + Startmodell)
-    print("1) parametrischer Fit …")
+    # ------------------------------------------------ 1. parametric (light + starting model)
+    print("1) parametric fit …")
     par = fit_lens_image(img, sig, pix, theta_E0=float(row["theta_E"]), q0=float(row["q"]), phi0=phi0,
                          psf_fwhm=PIX_PSF_FWHM, supersample=2, n_starts=6)
     p = par.params
     xl, yl = p["xl"], p["yl"]
-    print(f"   θE = {p['thetaE']:.3f}″, Lichtzentrum ({xl:.2f}, {yl:.2f})″, χ²_red = {par.reduced_chi2:.2f}")
+    print(f"   θE = {p['thetaE']:.3f}″, light centre ({xl:.2f}, {yl:.2f})″, χ²_red = {par.reduced_chi2:.2f}")
     resid_light = img - par.lens_light - par.amplitudes["background"]
 
     yy, xx = (np.mgrid[0:n, 0:n] - (n - 1) / 2) * pix
@@ -96,8 +96,8 @@ def main() -> int:
         qq, ph = q_phi_from_e(q["e1m"], q["e2m"])
         return SIE(q["thetaE"], q=qq, phi=ph, x0=xl, y0=yl) + ExternalShear(q["g1"], q["g2"])
 
-    # ------------------------------------------------ 2. innerer Ring: pixelierte Quelle
-    print("2) innerer Ring, pixelierte Quelle …")
+    # ------------------------------------------------ 2. inner ring: pixelated source
+    print("2) inner ring, pixelated source …")
     mask1 = (rr > 0.75) & (rr < 1.9) & ~bad
     g1 = SourceGrid(n=36, half=0.55, x0=p["xs"], y0=p["ys"])
     inv1 = SourceInverter(resid_light, sigma, mask1, pix, psf, g1, supersample=2, reg="gradient")
@@ -110,21 +110,21 @@ def main() -> int:
           f"χ²_red = {res1.reduced_chi2:.2f}, λ = {res1.lam:.3g}")
     lens1 = main_lens(lens_p)
 
-    # Schwerpunkt der rekonstruierten Quelle 1 (Lage der "Linse" für Quelle 2)
+    # centroid of the reconstructed source 1 (position of the "lens" for source 2)
     gx, gy = g1.axes
     s1 = np.clip(res1.source, 0, None)
     GX, GY = np.meshgrid(gx, gy)
     s1x, s1y = float((GX * s1).sum() / s1.sum()), float((GY * s1).sum() / s1.sum())
 
-    # ------------------------------------------------ 3. äußerer Ring: zweite Quellebene
-    print("3) äußerer Ring, zweite Quellebene …")
+    # ------------------------------------------------ 3. outer ring: second source plane
+    print("3) outer ring, second source plane …")
     resid2 = resid_light - res1.model
     mask2 = (rr > 1.85) & (rr < 2.9) & ~bad & (np.abs(xx) < HALF - 0.1) & (np.abs(yy) < HALF - 0.1)
 
     def ray_s2(eta, b_s1):
         def f(x, y):
             ax, ay = lens1.deflection(x, y)
-            # Ebene 1: Position, an der der Strahl die Quelle 1 passiert
+            # plane 1: position where the ray passes source 1
             x1, y1 = x - ax, y - ay
             bx, by = x - eta * ax, y - eta * ay
             if b_s1 > 0:
@@ -137,28 +137,28 @@ def main() -> int:
     inv2 = SourceInverter(resid2, sigma, mask2, pix, psf, g2, supersample=2, reg="gradient")
 
     def lens_obj(fn):
-        class _L:  # Adapter: fit_lens_by_evidence erwartet ein Objekt mit ray_shoot
+        class _L:  # adapter: fit_lens_by_evidence expects an object with ray_shoot
             ray_shoot = staticmethod(fn)
         return _L()
 
-    # Quellgitter auf die grob gefundene Quelle 2 zentrieren
+    # centre the source grid on the roughly located source 2
     first = inv2.invert(ray_s2(1.4, 0.0))
     s2 = np.clip(first.source, 0, None)
     g2x, g2y = g2.axes
     G2X, G2Y = np.meshgrid(g2x, g2y)
     g2.x0, g2.y0 = float((G2X * s2).sum() / s2.sum()), float((G2Y * s2).sum() / s2.sum())
-    # Wichtig: kompaktes Quellgitter. Ein großes Gitter erlaubt bei zu kleinem η eine Lösung,
-    # in der die Quelle das kaum mehrfach abgebildete Bild einfach "abkopiert" (inkl. Resten des
-    # Linsenlichts); die Evidenz bevorzugt dann diese entartete Lösung.
+    # Important: compact source grid. A large grid allows, for too small η, a solution in which
+    # the source simply "copies" the barely multiply imaged image (including residuals of the
+    # lens light); the evidence then prefers this degenerate solution.
     g2.half = 0.3
     from scipy.ndimage import median_filter as _mf
     resid2_hp = resid2 - _mf(np.where(bad, 0.0, resid2), size=17, mode="reflect")
 
     def scan(inverter, b_s1, etas, broad=None, refine_at=None):
-        """Grober Scan, dann fein um das Maximum. Rückgabe: (η-Gitter, ln E, beste Inversion, η_max).
+        """Coarse scan, then fine around the maximum. Returns (η grid, ln E, best inversion, η_max).
 
-        Mit ``broad`` (Inverter mit großem Gitter) wird das kompakte Gitter für jedes η auf den
-        Schwerpunkt der dort grob rekonstruierten Quelle gesetzt ("mitlaufendes Gitter").
+        With ``broad`` (an inverter with a large grid) the compact grid is centred, for each η, on
+        the centroid of the source roughly reconstructed there ("tracking grid").
         """
         def one(e):
             fn = ray_s2(e, b_s1)
@@ -174,7 +174,7 @@ def main() -> int:
             res = [one(e) for e in es]
             return np.array([r.log_evidence for r in res]), res
         lnE, res = run(etas)
-        # fein um die beste Stelle in beiden Bereichen (die Evidenz kann zwei Maxima haben)
+        # refine around the best point in both ranges (the evidence can have two maxima)
         fines, lnFs, resFs = [], [], []
         centers = []
         for lo, hi in ((1.28, 1.37), (1.39, 1.53)):
@@ -197,16 +197,16 @@ def main() -> int:
 
     etas = np.round(np.arange(1.30, 1.6001, 0.02), 4)
 
-    # Basismodell + Varianten der Analyse (Systematik)
-    # Basis: Hochpass (Median 17 px ≈ 0,85″) entfernt großräumige Reste des Linsenlichts, die das
-    # einfache Sérsic-Lichtmodell hinterlässt; die schmalen Bögen bleiben erhalten.
+    # baseline model + analysis variants (systematics)
+    # baseline: a high-pass (median 17 px ≈ 0.85″) removes large-scale lens-light residuals left by
+    # the simple Sérsic light model; the narrow arcs are preserved.
     variants = {
-        "Basis (Hochpass, Gitter ±0,30″)": dict(r_in=1.85, half=0.30, reg="gradient", hp=True),
-        "Gitter ±0,25″": dict(r_in=1.85, half=0.25, reg="gradient", hp=True),
-        "Gitter ±0,35″": dict(r_in=1.85, half=0.35, reg="gradient", hp=True),
-        "Maske ab 1,95″": dict(r_in=1.95, half=0.30, reg="gradient", hp=True),
-        "Krümmungs-Regularisierung": dict(r_in=1.85, half=0.30, reg="curvature", hp=True),
-        "ohne Hochpass (nur zur Kontrolle)": dict(r_in=1.85, half=0.30, reg="gradient", hp=False),
+        "baseline (high-pass, grid ±0.30″)": dict(r_in=1.85, half=0.30, reg="gradient", hp=True),
+        "grid ±0.25″": dict(r_in=1.85, half=0.25, reg="gradient", hp=True),
+        "grid ±0.35″": dict(r_in=1.85, half=0.35, reg="gradient", hp=True),
+        "mask from 1.95″": dict(r_in=1.95, half=0.30, reg="gradient", hp=True),
+        "curvature regularization": dict(r_in=1.85, half=0.30, reg="curvature", hp=True),
+        "no high-pass (control only)": dict(r_in=1.85, half=0.30, reg="gradient", hp=False),
     }
     results = {}
     for vname, v in variants.items():
@@ -218,7 +218,7 @@ def main() -> int:
         e_grid, lnE, best, e_best = scan(inv, 0.0, etas, broad)
         results[vname] = dict(eta=e_best, lnE=lnE, etas=e_grid, res=best)
         print(f"   {vname:40s}: η_max = {e_best:.3f}, χ²_red = {best.reduced_chi2:.2f}")
-    base = results["Basis (Hochpass, Gitter ±0,30″)"]
+    base = results["baseline (high-pass, grid ±0.30″)"]
 
     def mode_lnE(r, lo, hi):
         sel = (r["etas"] >= lo) & (r["etas"] <= hi)
@@ -229,17 +229,17 @@ def main() -> int:
         r["hi_mode"] = mode_lnE(r, 1.40, 1.52)
         r["lo_mode"] = mode_lnE(r, 1.28, 1.36)
         r["dlnE"] = r["hi_mode"][1] - r["lo_mode"][1]
-    good = [r for k, r in results.items() if "Kontrolle" not in k]
+    good = [r for k, r in results.items() if "control" not in k]
     hi_vals = np.array([r["hi_mode"][0] for r in good])
     eta_iso = float(np.median(hi_vals))
     eta_sys = float(np.max(np.abs(hi_vals - eta_iso)))
 
-    # Masse von Quelle 1 (SIS mit Einsteinradius b_s1 für Quelle 2): Entartung mit η
+    # mass of source 1 (SIS with Einstein radius b_s1 for source 2): degenerate with η
     m2 = (rr > 1.85) & (rr < 2.9) & ~bad & (np.abs(xx) < HALF - 0.1) & (np.abs(yy) < HALF - 0.1)
     inv_b = SourceInverter(resid2_hp, sigma, m2, pix, psf, SourceGrid(30, 0.30, g2.x0, g2.y0), supersample=2)
     broad_b = SourceInverter(resid2_hp, sigma, m2, pix, psf, SourceGrid(30, 0.9, 0.0, 0.0), supersample=2)
     def nearest_local_max(es, ls, target):
-        """Lokales Maximum der Evidenz, das ``target`` am nächsten liegt (Lösung A stetig verfolgen)."""
+        """Local maximum of the evidence closest to ``target`` (track solution A continuously)."""
         idx = [i for i in range(len(ls)) if (i == 0 or ls[i] >= ls[i - 1]) and (i == len(ls) - 1 or ls[i] >= ls[i + 1])]
         return float(es[min(idx, key=lambda i: abs(es[i] - target))])
 
@@ -251,11 +251,11 @@ def main() -> int:
                                      refine_at=lambda es, ls, t=track: nearest_local_max(es, ls, t))
         track = nearest_local_max(e_grid_b, lnE_b, track)
         eta_of_b.append(track)
-        print(f"   b_s1 = {bs:.1f}″: Lösung A bei η = {track:.3f}")
+        print(f"   b_s1 = {bs:.1f}″: solution A at η = {track:.3f}")
     write_table(OUT / "eta_scan.dat", ["eta", "dlnE"], base["etas"], base["lnE"] - base["lnE"].max())
 
-    # ------------------------------------------------ 4. Kosmologie
-    # η hängt an der Steigung γ' des Dichteprofils: η = (θ_E2/θ_E1)^(γ'-1); SIE: γ' = 2.
+    # ------------------------------------------------ 4. cosmology
+    # η depends on the slope γ' of the density profile: η = (θ_E2/θ_E1)^(γ'-1); SIE: γ' = 2.
     ratio = eta_iso
     gammas = np.linspace(1.8, 2.2, 41)
     write_table(OUT / "eta_vs_gamma.dat", ["gamma", "eta", "lo", "hi"], gammas, ratio ** (gammas - 1),
@@ -280,7 +280,7 @@ def main() -> int:
     write_macros(OUT / "macros.tex", macros)
     rmain = base
 
-    # ------------------------------------------------ Bilder für die Abbildung
+    # ------------------------------------------------ images for the figure
     lo, hi = np.percentile(img[~bad], [5, 99.7])
     model_full = par.lens_light + par.amplitudes["background"] + res1.model + rmain["res"].model
     resid = np.where(bad, np.nan, (img - model_full) / sigma)
@@ -303,51 +303,51 @@ def main() -> int:
         "tax": g2.x0 - g2.half, "tbx": g2.x0 + g2.half, "tay": g2.y0 - g2.half, "tby": g2.y0 + g2.half,
     })
 
-    # ------------------------------------------------ Zusammenfassung
+    # ------------------------------------------------ summary
     lines = [
-        "# SDSS J0946+1006: pixelierte Quellen und zweite Quellebene", "",
-        "Automatisch erzeugt von `analysis/jackpot.py`.", "",
-        f"Rotverschiebungen: Linse {Z_D}, Quelle 1 {Z_S1} (Bolton et al. 2008), Quelle 2 {Z_S2} (Smith & Collett 2021).", "",
-        "## Innerer Ring mit pixelierter Quelle", "",
-        f"- parametrische Sérsic-Quelle: θ_E = {p['thetaE']:.3f}″, χ²_red = {par.reduced_chi2:.2f}",
-        f"- pixelierte Quelle (36×36, Gradient-Regularisierung, λ = {res1.lam:.3g} aus der Evidenz): "
+        "# SDSS J0946+1006: pixelated sources and a second source plane", "",
+        "Generated automatically by `analysis/jackpot.py`.", "",
+        f"Redshifts: lens {Z_D}, source 1 {Z_S1} (Bolton et al. 2008), source 2 {Z_S2} (Smith & Collett 2021).", "",
+        "## Inner ring with a pixelated source", "",
+        f"- parametric Sérsic source: θ_E = {p['thetaE']:.3f}″, χ²_red = {par.reduced_chi2:.2f}",
+        f"- pixelated source (36×36, gradient regularization, λ = {res1.lam:.3g} from the evidence): "
         f"θ_E = {lens_p['thetaE']:.3f}″, q = {q1:.3f}, γ_ext = {np.hypot(lens_p['g1'], lens_p['g2']):.3f}, "
-        f"χ²_red im Ringbereich = {res1.reduced_chi2:.2f}", "",
-        "## Zweite Quellebene", "",
-        "Gescannt wurde η von 1,30 bis 1,60 (grob, dann fein um das Maximum); Ergebnis ist das Maximum der "
-        "Evidenz. Das Quellgitter für Quelle 2 muss kompakt sein: Mit ±0,5″ gewinnt eine entartete Lösung bei "
-        "kleinem η, in der die Quelle das kaum mehrfach abgebildete Bild abkopiert. Für jedes η wird das kompakte "
-        "Gitter auf die grob rekonstruierte Quelle zentriert (mitlaufendes Gitter). Ohne Hochpass nutzt die "
-        "Inversion großräumige Reste des Linsenlichts aus (schlechteres χ²); diese Variante ist nur zur Kontrolle "
-        "aufgeführt und geht nicht in die Systematik ein.", "",
-        "| Analyse | globales Maximum η | Lösung A (η ≈ 1,46) | Lösung B (η ≈ 1,31) | ln E(A) − ln E(B) |",
+        f"χ²_red in the ring region = {res1.reduced_chi2:.2f}", "",
+        "## Second source plane", "",
+        "η was scanned from 1.30 to 1.60 (coarse, then fine around the maximum); the result is the maximum of "
+        "the evidence. The source grid for source 2 has to be compact: with ±0.5″ a degenerate solution at small "
+        "η wins, in which the source copies the barely multiply imaged image. For each η the compact grid is "
+        "centred on the roughly reconstructed source (tracking grid). Without the high-pass the inversion exploits "
+        "large-scale lens-light residuals (worse χ²); this variant is listed only as a control and does not enter "
+        "the systematics.", "",
+        "| Analysis | global maximum η | solution A (η ≈ 1.46) | solution B (η ≈ 1.31) | ln E(A) − ln E(B) |",
         "|---|---|---|---|---|",
     ]
     for vname, r in results.items():
         lines.append(f"| {vname} | {r['eta']:.3f} | {r['hi_mode'][0]:.3f} | {r['lo_mode'][0]:.3f} | {r['dlnE']:+.0f} |")
     lines += [
         "",
-        "- Die Evidenz ist **bimodal**: Lösung A (η ≈ 1,46) und Lösung B (η ≈ 1,31). Welche gewinnt, hängt "
-        "von Analysedetails ab; die Daten (eine einzelne F814W-Aufnahme, 1048 s) trennen sie nicht sicher. "
-        "Lösung B liegt am Rand des plausiblen Bereichs und entspricht einem kaum mehrfach abgebildeten äußeren Ring.",
-        f"- Lösung A: θ_E2/θ_E1 = {eta_iso:.3f} ± {eta_sys:.3f} (Spannweite der Varianten) – passt zu Gavazzi et al. "
-        "(2008), die aus tieferen Daten 2,07″/1,43″ = 1,45 fanden.",
-        f"- Masse von Quelle 1 als SIS (Lösung A stetig verfolgt): b_s1 = 0,1″ → η = {eta_of_b[1]:.3f}, "
-        f"b_s1 = 0,2″ → η = {eta_of_b[2]:.3f}. Mehr Masse in Quelle 1 lenkt Quelle 2 zusätzlich ab; "
-        "die Hauptlinse muss dann weniger leisten.",
-        f"- Flaches ΛCDM (Ωₘ = 0,315) sagt η = {eta_lcdm:.3f} voraus. Isotherm und ohne Masse von Quelle 1 "
-        f"entspräche das gemessene η einem w ≈ {w_from_eta(eta_iso):.1f}; mit γ′ = {gamma_lcdm:.2f} statt 2 wäre es "
-        f"genau ΛCDM.",
-        "- Collett & Auger (2014) marginalisieren über die Steigung γ′ und die Masse von Quelle 1 und finden "
-        "η = 1,404 ± 0,016; mit der spektroskopischen Rotverschiebung z = 2,035 (Smith & Collett 2021) und einem "
-        "CMB-Prior ergibt sich w = −1,04 ± 0,20.", "",
-        "Fazit: Der innere Ring ist mit pixelierter Quelle sehr gut bestimmt. Für den schwachen äußeren Ring reicht "
-        "diese eine Aufnahme nicht für eine eindeutige Messung: Die physikalisch plausible Lösung A reproduziert "
-        "den Literaturwert, eine zweite Lösung lässt sich aber nicht sicher ausschließen. Selbst mit eindeutiger "
-        "Geometrie hinge die Kosmologie an der Profilsteigung γ′ und der Masse von Quelle 1 – genau den Größen, "
-        "die die Forschung mit tieferen Mehrband-Daten und Sternkinematik einschränkt.", "",
+        "- The evidence is **bimodal**: solution A (η ≈ 1.46) and solution B (η ≈ 1.31). Which one wins depends "
+        "on analysis details; the data (a single F814W exposure, 1048 s) do not separate them reliably. "
+        "Solution B lies at the edge of the plausible range and corresponds to a barely multiply imaged outer ring.",
+        f"- Solution A: θ_E2/θ_E1 = {eta_iso:.3f} ± {eta_sys:.3f} (spread of the variants) – consistent with Gavazzi et al. "
+        "(2008), who found 2.07″/1.43″ = 1.45 from deeper data.",
+        f"- Mass of source 1 as an SIS (solution A tracked continuously): b_s1 = 0.1″ → η = {eta_of_b[1]:.3f}, "
+        f"b_s1 = 0.2″ → η = {eta_of_b[2]:.3f}. More mass in source 1 deflects source 2 additionally, "
+        "so the main lens has to do less.",
+        f"- Flat ΛCDM (Ωₘ = 0.315) predicts η = {eta_lcdm:.3f}. Isothermal and without mass in source 1, the measured "
+        f"η would correspond to w ≈ {w_from_eta(eta_iso):.1f}; with γ′ = {gamma_lcdm:.2f} instead of 2 it would be "
+        f"exactly ΛCDM.",
+        "- Collett & Auger (2014) marginalize over the slope γ′ and the mass of source 1 and find "
+        "η = 1.404 ± 0.016; with the spectroscopic redshift z = 2.035 (Smith & Collett 2021) and a "
+        "CMB prior this gives w = −1.04 ± 0.20.", "",
+        "Conclusion: the inner ring is very well constrained with a pixelated source. For the faint outer ring this "
+        "single exposure is not enough for an unambiguous measurement: the physically plausible solution A "
+        "reproduces the literature value, but a second solution cannot be excluded with confidence. Even with an "
+        "unambiguous geometry the cosmology would hinge on the profile slope γ′ and the mass of source 1 – exactly "
+        "the quantities that research constrains with deeper multi-band data and stellar kinematics.", "",
         "![Jackpot](../figures/jackpot/jackpot_fit.svg)", "",
-        "![Kosmologie](../figures/jackpot/jackpot_eta.svg)", "",
+        "![Cosmology](../figures/jackpot/jackpot_eta.svg)", "",
     ]
     (ROOT / "analysis" / "jackpot_results.md").write_text("\n".join(lines), encoding="utf-8")
     print("\n".join(lines))

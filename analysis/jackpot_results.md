@@ -1,35 +1,35 @@
-# SDSS J0946+1006: pixelierte Quellen und zweite Quellebene
+# SDSS J0946+1006: pixelated sources and a second source plane
 
-Automatisch erzeugt von `analysis/jackpot.py`.
+Generated automatically by `analysis/jackpot.py`.
 
-Rotverschiebungen: Linse 0.222, Quelle 1 0.609 (Bolton et al. 2008), Quelle 2 2.035 (Smith & Collett 2021).
+Redshifts: lens 0.222, source 1 0.609 (Bolton et al. 2008), source 2 2.035 (Smith & Collett 2021).
 
-## Innerer Ring mit pixelierter Quelle
+## Inner ring with a pixelated source
 
-- parametrische Sérsic-Quelle: θ_E = 1.406″, χ²_red = 1.42
-- pixelierte Quelle (36×36, Gradient-Regularisierung, λ = 83.3 aus der Evidenz): θ_E = 1.405″, q = 0.963, γ_ext = 0.073, χ²_red im Ringbereich = 1.16
+- parametric Sérsic source: θ_E = 1.406″, χ²_red = 1.42
+- pixelated source (36×36, gradient regularization, λ = 83.3 from the evidence): θ_E = 1.405″, q = 0.963, γ_ext = 0.073, χ²_red in the ring region = 1.16
 
-## Zweite Quellebene
+## Second source plane
 
-Gescannt wurde η von 1,30 bis 1,60 (grob, dann fein um das Maximum); Ergebnis ist das Maximum der Evidenz. Das Quellgitter für Quelle 2 muss kompakt sein: Mit ±0,5″ gewinnt eine entartete Lösung bei kleinem η, in der die Quelle das kaum mehrfach abgebildete Bild abkopiert. Für jedes η wird das kompakte Gitter auf die grob rekonstruierte Quelle zentriert (mitlaufendes Gitter). Ohne Hochpass nutzt die Inversion großräumige Reste des Linsenlichts aus (schlechteres χ²); diese Variante ist nur zur Kontrolle aufgeführt und geht nicht in die Systematik ein.
+η was scanned from 1.30 to 1.60 (coarse, then fine around the maximum); the result is the maximum of the evidence. The source grid for source 2 has to be compact: with ±0.5″ a degenerate solution at small η wins, in which the source copies the barely multiply imaged image. For each η the compact grid is centred on the roughly reconstructed source (tracking grid). Without the high-pass the inversion exploits large-scale lens-light residuals (worse χ²); this variant is listed only as a control and does not enter the systematics.
 
-| Analyse | globales Maximum η | Lösung A (η ≈ 1,46) | Lösung B (η ≈ 1,31) | ln E(A) − ln E(B) |
+| Analysis | global maximum η | solution A (η ≈ 1.46) | solution B (η ≈ 1.31) | ln E(A) − ln E(B) |
 |---|---|---|---|---|
-| Basis (Hochpass, Gitter ±0,30″) | 1.460 | 1.460 | 1.320 | +47 |
-| Gitter ±0,25″ | 1.460 | 1.460 | 1.288 | +89 |
-| Gitter ±0,35″ | 1.312 | 1.456 | 1.312 | -30 |
-| Maske ab 1,95″ | 1.320 | 1.460 | 1.320 | -8 |
-| Krümmungs-Regularisierung | 1.460 | 1.460 | 1.312 | +32 |
-| ohne Hochpass (nur zur Kontrolle) | 1.308 | 1.460 | 1.308 | -23 |
+| baseline (high-pass, grid ±0.30″) | 1.460 | 1.460 | 1.320 | +47 |
+| grid ±0.25″ | 1.460 | 1.460 | 1.288 | +89 |
+| grid ±0.35″ | 1.312 | 1.456 | 1.312 | -30 |
+| mask from 1.95″ | 1.320 | 1.460 | 1.320 | -8 |
+| curvature regularization | 1.460 | 1.460 | 1.312 | +32 |
+| no high-pass (control only) | 1.308 | 1.460 | 1.308 | -23 |
 
-- Die Evidenz ist **bimodal**: Lösung A (η ≈ 1,46) und Lösung B (η ≈ 1,31). Welche gewinnt, hängt von Analysedetails ab; die Daten (eine einzelne F814W-Aufnahme, 1048 s) trennen sie nicht sicher. Lösung B liegt am Rand des plausiblen Bereichs und entspricht einem kaum mehrfach abgebildeten äußeren Ring.
-- Lösung A: θ_E2/θ_E1 = 1.460 ± 0.004 (Spannweite der Varianten) – passt zu Gavazzi et al. (2008), die aus tieferen Daten 2,07″/1,43″ = 1,45 fanden.
-- Masse von Quelle 1 als SIS (Lösung A stetig verfolgt): b_s1 = 0,1″ → η = 1.400, b_s1 = 0,2″ → η = 1.340. Mehr Masse in Quelle 1 lenkt Quelle 2 zusätzlich ab; die Hauptlinse muss dann weniger leisten.
-- Flaches ΛCDM (Ωₘ = 0,315) sagt η = 1.388 voraus. Isotherm und ohne Masse von Quelle 1 entspräche das gemessene η einem w ≈ -0.1; mit γ′ = 1.87 statt 2 wäre es genau ΛCDM.
-- Collett & Auger (2014) marginalisieren über die Steigung γ′ und die Masse von Quelle 1 und finden η = 1,404 ± 0,016; mit der spektroskopischen Rotverschiebung z = 2,035 (Smith & Collett 2021) und einem CMB-Prior ergibt sich w = −1,04 ± 0,20.
+- The evidence is **bimodal**: solution A (η ≈ 1.46) and solution B (η ≈ 1.31). Which one wins depends on analysis details; the data (a single F814W exposure, 1048 s) do not separate them reliably. Solution B lies at the edge of the plausible range and corresponds to a barely multiply imaged outer ring.
+- Solution A: θ_E2/θ_E1 = 1.460 ± 0.004 (spread of the variants) – consistent with Gavazzi et al. (2008), who found 2.07″/1.43″ = 1.45 from deeper data.
+- Mass of source 1 as an SIS (solution A tracked continuously): b_s1 = 0.1″ → η = 1.400, b_s1 = 0.2″ → η = 1.340. More mass in source 1 deflects source 2 additionally, so the main lens has to do less.
+- Flat ΛCDM (Ωₘ = 0.315) predicts η = 1.388. Isothermal and without mass in source 1, the measured η would correspond to w ≈ -0.1; with γ′ = 1.87 instead of 2 it would be exactly ΛCDM.
+- Collett & Auger (2014) marginalize over the slope γ′ and the mass of source 1 and find η = 1.404 ± 0.016; with the spectroscopic redshift z = 2.035 (Smith & Collett 2021) and a CMB prior this gives w = −1.04 ± 0.20.
 
-Fazit: Der innere Ring ist mit pixelierter Quelle sehr gut bestimmt. Für den schwachen äußeren Ring reicht diese eine Aufnahme nicht für eine eindeutige Messung: Die physikalisch plausible Lösung A reproduziert den Literaturwert, eine zweite Lösung lässt sich aber nicht sicher ausschließen. Selbst mit eindeutiger Geometrie hinge die Kosmologie an der Profilsteigung γ′ und der Masse von Quelle 1 – genau den Größen, die die Forschung mit tieferen Mehrband-Daten und Sternkinematik einschränkt.
+Conclusion: the inner ring is very well constrained with a pixelated source. For the faint outer ring this single exposure is not enough for an unambiguous measurement: the physically plausible solution A reproduces the literature value, but a second solution cannot be excluded with confidence. Even with an unambiguous geometry the cosmology would hinge on the profile slope γ′ and the mass of source 1 – exactly the quantities that research constrains with deeper multi-band data and stellar kinematics.
 
 ![Jackpot](../figures/jackpot/jackpot_fit.svg)
 
-![Kosmologie](../figures/jackpot/jackpot_eta.svg)
+![Cosmology](../figures/jackpot/jackpot_eta.svg)
