@@ -6,9 +6,9 @@
 \begin{tikzpicture}
   \begin{axis}[
       lenscape,
-      title={Sterne gegen Linse: Ist die Gesamtmasse isotherm?},
+      title={Stars vs.\ lensing: is the total mass isothermal?},
       xlabel={$f_\mathrm{SIE} = \sigma_\mathrm{SDSS} / \sigma_\mathrm{SIE}$},
-      ylabel={Anzahl Linsen},
+      ylabel={Number of lenses},
       xmin=0.66, xmax=1.26, ymin=0, ymax=\fsieymax,
       xtick distance=0.1,
       /pgf/number format/fixed, /pgf/number format/precision=1,
@@ -18,16 +18,16 @@
       table[x=left, y=count] {data/f_sie_hist.dat};
     \addlegendentry{SLACS, $N=\fsien$}
 
-    % Unsicherheit des Mittelwerts als Band
+    % uncertainty of the mean as a band
     \fill[lsOrange, opacity=0.22]
       (axis cs:{\fsiemean-\fsieerr},0) rectangle (axis cs:{\fsiemean+\fsieerr},\fsieymax);
 
     \addplot[reference] coordinates {(1,0) (1,\fsieymax)};
-    \addlegendentry{isotherm: $f_\mathrm{SIE}=1$}
+    \addlegendentry{isothermal: $f_\mathrm{SIE}=1$}
 
     \addplot[lsOrange, densely dashed, line width=0.9pt]
       coordinates {(\fsiemean,0) (\fsiemean,\fsieymax)};
-    \addlegendentry{Mittel $\pgfmathprintnumber[fixed,precision=3]{\fsiemean}
+    \addlegendentry{mean $\pgfmathprintnumber[fixed,precision=3]{\fsiemean}
       \pm \pgfmathprintnumber[fixed,precision=3]{\fsieerr}$}
   \end{axis}
 \end{tikzpicture}
