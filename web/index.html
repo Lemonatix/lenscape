@@ -1,10 +1,15 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gravitationslinse – eigenes Bild verbiegen</title>
-<meta name="description" content="Lade ein Foto hoch und sieh, wie eine Masse davor das Licht ablenkt. Mit Reglern für Masse, Abstände und Lichtgeschwindigkeit.">
+<title>Gravitational lens – bend your own image</title>
+<meta name="description" content="Upload a photo and see how a mass in front of it deflects the light. With sliders for mass, distances and the speed of light.">
+<!-- KaTeX for the formulas; without it the page still works and shows the TeX source -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+  onload="renderMathInElement(document.body, {delimiters: [{left: '\\(', right: '\\)', display: false}]})"></script>
 <style>
   :root {
     --bg: #07090f;
@@ -33,7 +38,7 @@
   .badge { position: absolute; right: 10px; top: 8px; font-size: 11px; color: #cfd6e6;
     background: rgba(0,0,0,.5); padding: 2px 7px; border-radius: 6px; pointer-events: none; }
   .hidden { display: none !important; }
-  /* Einbettung in andere Seiten (?embed): nur Bühne und Regler */
+  /* embedding in other pages (?embed): stage and controls only */
   body.embed header, body.embed .note { display: none; }
   body.embed main { padding-top: 12px; }
   .stage.drop { outline: 2px dashed var(--accent); outline-offset: -8px; }
@@ -66,9 +71,9 @@
 </head>
 <body>
 <header>
-  <h1>Gravitationslinse: verbieg dein eigenes Bild</h1>
-  <p>Eine Masse vor deinem Bild krümmt die Raumzeit, Lichtstrahlen werden abgelenkt. Ziehe die Linse mit der Maus,
-     verändere Masse und Abstände, oder mach das Licht langsamer.</p>
+  <h1>Gravitational lens: bend your own image</h1>
+  <p>A mass in front of your image curves spacetime and deflects the light rays. Drag the lens with the mouse,
+     change mass and distances, or slow the light down.</p>
 </header>
 
 <main>
@@ -76,95 +81,95 @@
     <div class="stage" id="stage">
       <canvas id="view" width="900" height="600"></canvas>
       <canvas id="overlay" class="overlay" width="900" height="600"></canvas>
-      <div class="hint" id="hint">Linse ziehen · Bild hierher ziehen zum Hochladen</div>
+      <div class="hint" id="hint">drag the lens · drop an image here to upload</div>
       <div class="badge" id="badge"></div>
     </div>
     <div class="readout">
-      <div><b id="r-thetaE">–</b><span>Einsteinradius θ<sub>E</sub></span></div>
-      <div><b id="r-rs">–</b><span>Schwarzschildradius</span></div>
-      <div><b id="r-c">–</b><span>Lichtgeschwindigkeit</span></div>
-      <div><b id="r-mass">–</b><span>Masse</span></div>
+      <div><b id="r-thetaE">–</b><span>Einstein radius \(\theta_\mathrm{E}\)</span></div>
+      <div><b id="r-rs">–</b><span>Schwarzschild radius \(r_\mathrm{s}\)</span></div>
+      <div><b id="r-c">–</b><span>speed of light \(c\)</span></div>
+      <div><b id="r-mass">–</b><span>mass \(M\)</span></div>
     </div>
   </section>
 
   <aside>
-    <h2>Bild</h2>
+    <h2>Image</h2>
     <div class="presets">
-      <label class="file">Bild hochladen…<input type="file" id="file" accept="image/*"></label>
-      <button data-pattern="stars">Sternfeld</button>
-      <button data-pattern="grid">Gitter</button>
-      <button id="download">Ergebnis speichern</button>
+      <label class="file">Upload image…<input type="file" id="file" accept="image/*"></label>
+      <button data-pattern="stars">Star field</button>
+      <button data-pattern="grid">Grid</button>
+      <button id="download">Save result</button>
     </div>
 
-    <h2>Szenario</h2>
+    <h2>Scenario</h2>
     <div class="presets" id="scenarios">
-      <button data-scn="galaxy">Galaxie im All</button>
-      <button data-scn="sun">Sonne (1919)</button>
-      <button data-scn="room">Schwarzes Loch im Zimmer</button>
-      <button data-scn="slowsun">Sonne, c = 1 %</button>
+      <button data-scn="galaxy">Galaxy in space</button>
+      <button data-scn="sun">Sun (1919)</button>
+      <button data-scn="room">Black hole in your room</button>
+      <button data-scn="slowsun">Sun, c = 1 %</button>
     </div>
 
-    <h2>Linse</h2>
+    <h2>Lens</h2>
     <div class="presets" id="models">
-      <button data-model="point" class="on">Punktmasse / Schwarzes Loch</button>
-      <button data-model="sie">Galaxie (elliptisch)</button>
+      <button data-model="point" class="on">Point mass / black hole</button>
+      <button data-model="sie">Galaxy (elliptical)</button>
     </div>
     <div id="sie-controls" class="hidden" style="margin-top:10px">
       <div class="row">
-        <label for="q">Achsenverhältnis q <output id="o-q"></output></label>
+        <label for="q"><span>axis ratio \(q\)</span> <output id="o-q"></output></label>
         <input type="range" id="q" min="0.3" max="1" step="0.01" value="0.75">
       </div>
       <div class="row">
-        <label for="phi">Orientierung <output id="o-phi"></output></label>
+        <label for="phi"><span>orientation</span> <output id="o-phi"></output></label>
         <input type="range" id="phi" min="0" max="180" step="1" value="30">
       </div>
     </div>
     <div class="row" style="margin-top:10px">
-      <label for="mass">Masse <output id="o-mass"></output></label>
+      <label for="mass"><span>mass \(M\)</span> <output id="o-mass"></output></label>
       <input type="range" id="mass" min="0" max="44" step="0.01">
     </div>
     <div class="row">
-      <label for="cfac">Lichtgeschwindigkeit <output id="o-cfac" class="light"></output></label>
+      <label for="cfac"><span>speed of light \(c\)</span> <output id="o-cfac" class="light"></output></label>
       <input type="range" id="cfac" min="-9" max="0" step="0.01">
     </div>
 
-    <h2>Geometrie</h2>
+    <h2>Geometry</h2>
     <div class="row">
-      <label for="dd">Abstand Beobachter → Linse <output id="o-dd"></output></label>
+      <label for="dd"><span>distance observer → lens \(D_\mathrm{d}\)</span> <output id="o-dd"></output></label>
       <input type="range" id="dd" min="-1" max="26.5" step="0.01">
     </div>
     <div class="row">
-      <label for="ratio">Bild liegt … mal so weit weg <output id="o-ratio"></output></label>
+      <label for="ratio"><span>image is … times as far away</span> <output id="o-ratio"></output></label>
       <input type="range" id="ratio" min="0.005" max="6" step="0.005">
     </div>
     <div class="row">
-      <label for="fov">Bildbreite (Blickwinkel) <output id="o-fov"></output></label>
+      <label for="fov"><span>image width (field of view)</span> <output id="o-fov"></output></label>
       <input type="range" id="fov" min="-4" max="5.3" step="0.01">
     </div>
-    <div class="presets"><button id="autofov">Bildbreite an θ<sub>E</sub> anpassen</button></div>
+    <div class="presets"><button id="autofov">fit image width to \(\theta_\mathrm{E}\)</button></div>
 
-    <h2>Anzeige</h2>
+    <h2>Display</h2>
     <div class="toggles">
-      <label><input type="checkbox" id="ring" checked> Einsteinring</label>
-      <label><input type="checkbox" id="orig"> Original zeigen</label>
-      <label><input type="checkbox" id="mirror" checked> Bildrand spiegeln</label>
+      <label><input type="checkbox" id="ring" checked> Einstein ring</label>
+      <label><input type="checkbox" id="orig"> show original</label>
+      <label><input type="checkbox" id="mirror" checked> mirror image edges</label>
     </div>
 
-    <p class="note">Physik: dünne Linse in Näherung schwacher Felder,
-      β = θ − θ<sub>E</sub>²/θ (Punktmasse) bzw. β = θ − α<sub>SIE</sub>(θ) (elliptische isotherme Galaxie, Keeton 2001;
-      für q = 1 ist |α| = θ<sub>E</sub>) mit
-      θ<sub>E</sub>² = 4GM/c² · D<sub>ds</sub>/(D<sub>d</sub>D<sub>s</sub>).
-      Ein langsameres c verstärkt die Ablenkung wie 1/c². Abstände euklidisch (D<sub>ds</sub> = D<sub>s</sub> − D<sub>d</sub>);
-      die kosmologisch korrekte Rechnung steckt im Python-Teil von <i>lenscape</i>.
-      Für sehr starke Felder (nahe am Schwarzen Loch) ist die Näherung nur qualitativ.
-      Gerechnet wird pro Pixel auf der Grafikkarte (WebGL2). Zum Einbinden in andere Seiten: <code>index.html?embed</code>.</p>
+    <p class="note">Physics: thin lens in the weak-field approximation,
+      \(\beta = \theta - \theta_\mathrm{E}^2/\theta\) (point mass) or \(\beta = \theta - \alpha_\mathrm{SIE}(\theta)\)
+      (elliptical isothermal galaxy, Keeton 2001; for \(q = 1\), \(|\alpha| = \theta_\mathrm{E}\)) with
+      \(\theta_\mathrm{E}^2 = (4GM/c^2)\,D_\mathrm{ds}/(D_\mathrm{d}\,D_\mathrm{s})\).
+      A slower \(c\) strengthens the deflection as \(1/c^2\). Distances are Euclidean
+      (\(D_\mathrm{ds} = D_\mathrm{s} - D_\mathrm{d}\)); the cosmologically correct calculation lives in the Python part of
+      <i>lenscape</i>. For very strong fields (close to the black hole) the approximation is only qualitative.
+      Everything is computed per pixel on the GPU (WebGL2). To embed in other pages: <code>index.html?embed</code>.</p>
   </aside>
 </main>
 
 <script>
 (() => {
   "use strict";
-  // ---------------------------------------------------------- Konstanten (SI)
+  // ---------------------------------------------------------- constants (SI)
   const G = 6.674e-11, C0 = 2.99792458e8, MSUN = 1.989e30, MEARTH = 5.972e24;
   const AU = 1.496e11, LY = 9.461e15, PC = 3.0857e16;
   const ARCSEC = Math.PI / 180 / 3600;
@@ -179,61 +184,63 @@
   };
   if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("embed");
 
-  const state = { model: "point", lensX: 0.5, lensY: 0.5, body: null }; // body: undurchsichtiger Linsenkörper
+  const state = { model: "point", lensX: 0.5, lensY: 0.5, body: null }; // body: opaque lens body
   let src = null; // {w, h, data, canvas}
 
-  // ---------------------------------------------------------- Formatierung
+  // ---------------------------------------------------------- formatting
   function fmtLen(m) {
-    if (m < 1) return (m * 100).toPrecision(3) + " cm";
-    if (m < 1e3) return m.toPrecision(3) + " m";
-    if (m < 0.1 * AU) return (m / 1e3).toPrecision(3) + " km";
-    if (m < 0.2 * LY) return (m / AU).toPrecision(3) + " AE";
-    if (m < 1e3 * PC) return (m / LY).toPrecision(3) + " Lj";
-    if (m < 1e6 * PC) return (m / PC / 1e3).toPrecision(3) + " kpc";
-    if (m < 1e9 * PC) return (m / PC / 1e6).toPrecision(3) + " Mpc";
-    return (m / PC / 1e9).toPrecision(3) + " Gpc";
+    if (m < 1) return p3(m * 100) + " cm";
+    if (m < 1e3) return p3(m) + " m";
+    if (m < 0.1 * AU) return p3(m / 1e3) + " km";
+    if (m < 0.2 * LY) return p3(m / AU) + " AU";
+    if (m < 1e3 * PC) return p3(m / LY) + " ly";
+    if (m < 1e6 * PC) return p3(m / PC / 1e3) + " kpc";
+    if (m < 1e9 * PC) return p3(m / PC / 1e6) + " Mpc";
+    return p3(m / PC / 1e9) + " Gpc";
   }
   function fmtAngle(rad) {
     const a = rad / ARCSEC;
-    if (a < 1e-3) return (a * 1e6).toPrecision(3) + " µas";
-    if (a < 1) return (a * 1e3).toPrecision(3) + " mas";
-    if (a < 60) return a.toPrecision(3) + "″";
-    if (a < 3600) return (a / 60).toPrecision(3) + "′";
-    return (a / 3600).toPrecision(3) + "°";
+    if (a < 1e-3) return p3(a * 1e6) + " µas";
+    if (a < 1) return p3(a * 1e3) + " mas";
+    if (a < 60) return p3(a) + "″";
+    if (a < 3600) return p3(a / 60) + "′";
+    return p3(a / 3600) + "°";
   }
   function fmtMass(kg) {
     const sci = (v) => {
       const e = Math.floor(Math.log10(v));
-      return e >= -2 && e <= 3 ? v.toPrecision(3) : (v / 10 ** e).toFixed(2) + "·10" + sup(e);
+      return e >= -2 && e <= 3 ? p3(v) : (v / 10 ** e).toFixed(2) + "·10" + sup(e);
     };
     if (kg < 0.1 * MEARTH) return sci(kg) + " kg";
-    if (kg < 0.05 * MSUN) return sci(kg / MEARTH) + " Erdmassen";
+    if (kg < 0.05 * MSUN) return sci(kg / MEARTH) + " Earth masses";
     return sci(kg / MSUN) + " M☉";
   }
+  // three significant digits, never in exponent notation: 29600 -> "29,600"
+  function p3(x) { return x.toLocaleString("en-US", { minimumSignificantDigits: 3, maximumSignificantDigits: 3 }); }
   function sup(n) { return String(n).replace(/[-0-9]/g, (d) => "⁻⁰¹²³⁴⁵⁶⁷⁸⁹"["-0123456789".indexOf(d)]); }
   function fmtSpeed(v) {
     if (v >= 1e6) { const e = Math.floor(Math.log10(v / 1e3)); return (v / 1e3 / 10 ** e).toFixed(2) + "·10" + sup(e) + " km/s"; }
-    if (v >= 1e3) return (v / 1e3).toPrecision(3) + " km/s";
-    return (v * 3.6).toPrecision(3) + " km/h";
+    if (v >= 1e3) return p3(v / 1e3) + " km/s";
+    return p3(v * 3.6) + " km/h";
   }
 
-  // ---------------------------------------------------------- Physik
+  // ---------------------------------------------------------- physics
   function geometry() {
     const M = 10 ** +ui.mass.value;
     const c = C0 * 10 ** +ui.cfac.value;
     const Dd = 10 ** +ui.dd.value;
-    const Ds = Dd * 10 ** +ui.ratio.value; // Ratio-Regler ist log10(D_s/D_d)
+    const Ds = Dd * 10 ** +ui.ratio.value; // the ratio slider is log10(D_s/D_d)
     const Dds = Ds - Dd;
     const rs = 2 * G * M / (c * c);
     const thetaE = Math.sqrt(4 * G * M / (c * c) * Dds / (Dd * Ds));
-    // Photonensphären-Schatten: Stoßparameter b < 3√3/2 · r_s wird eingefangen
+    // photon-sphere shadow: impact parameter b < 3√3/2 · r_s is captured
     const thetaShadow = state.model === "point" ? Math.min(1.5 * Math.sqrt(3) * rs / Dd, Math.PI / 2) : 0;
-    const fov = 10 ** +ui.fov.value * ARCSEC; // Bildbreite (rad)
+    const fov = 10 ** +ui.fov.value * ARCSEC; // image width (rad)
     const thetaBody = state.body ? Math.atan(state.body.R / Dd) : 0;
     return { M, c, Dd, Ds, Dds, rs, thetaE, thetaShadow, thetaBody, fov };
   }
 
-  // ---------------------------------------------------------- Testbilder
+  // ---------------------------------------------------------- test images
   function makePattern(kind) {
     const w = 1200, h = 800;
     const oc = document.createElement("canvas"); oc.width = w; oc.height = h;
@@ -251,7 +258,7 @@
       g.fillStyle = "#fff"; g.font = "bold 90px system-ui"; g.textAlign = "center"; g.textBaseline = "middle";
       g.fillText("lenscape", w / 2, h / 2);
     } else {
-      // Sternfeld mit ein paar Hintergrundgalaxien (deterministisch)
+      // star field with a few background galaxies (deterministic)
       let s = 7; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
       g.fillStyle = "#03040a"; g.fillRect(0, 0, w, h);
       for (let k = 0; k < 14; k++) {
@@ -272,7 +279,7 @@
     return grab(oc);
   }
   function grab(imgOrCanvas) {
-    const maxW = 2048;  // sicher unter dem Texturlimit aller WebGL2-Geräte
+    const maxW = 2048;  // safely below the texture limit of all WebGL2 devices
     const w0 = imgOrCanvas.naturalWidth || imgOrCanvas.width, h0 = imgOrCanvas.naturalHeight || imgOrCanvas.height;
     const k = Math.min(1, maxW / Math.max(w0, h0));
     const w = Math.round(w0 * k), h = Math.round(h0 * k);
@@ -291,8 +298,8 @@
     schedule();
   }
 
-  // ---------------------------------------------------------- Linsenphysik in Pixeleinheiten
-  // Gemeinsame Parameter für GPU und CPU: alle Winkel in Bildschirmpixeln.
+  // ---------------------------------------------------------- lens physics in pixel units
+  // shared parameters for GPU and CPU: all angles in screen pixels.
   function lensParams(geo) {
     const W = canvas.width, H = canvas.height;
     const radPerPx = geo.fov / W;
@@ -311,12 +318,12 @@
     };
   }
 
-  // ---------------------------------------------------------- GPU-Renderer (WebGL2)
+  // ---------------------------------------------------------- GPU renderer (WebGL2)
   const VERT = `#version 300 es
     in vec2 aPos; out vec2 vPix; uniform vec2 uSize;
     void main() {
-      vPix = (aPos * 0.5 + 0.5) * uSize;      // Pixelkoordinaten, y nach oben
-      vPix.y = uSize.y - vPix.y;              // y nach unten wie im Bild
+      vPix = (aPos * 0.5 + 0.5) * uSize;      // pixel coordinates, y up
+      vPix.y = uSize.y - vPix.y;              // y down as in the image
       gl_Position = vec4(aPos, 0.0, 1.0);
     }`;
   const FRAG = `#version 300 es
@@ -329,10 +336,10 @@
     uniform vec3 uBodyColor;
 
     vec2 deflect(vec2 t) {
-      if (uModel == 0) {                       // Punktmasse: alpha = tE^2 theta/|theta|^2
+      if (uModel == 0) {                       // point mass: alpha = tE^2 theta/|theta|^2
         return uTE * uTE * t / max(dot(t, t), 1e-12);
       }
-      // SIE (Keeton 2001), Zwischenachsen-Normierung wie lenscape.lenses.SIE
+      // SIE (Keeton 2001), intermediate-axis normalization as in lenscape.lenses.SIE
       float q = clamp(uQ, 0.05, 1.0);
       if (q > 0.999) return uTE * t / max(length(t), 1e-9);
       float c = cos(uPhi), s = sin(uPhi);
@@ -351,7 +358,7 @@
       if (uOrig == 1) { uv = vPix / uSize; outColor = texture(uTex, uv); return; }
       vec2 t = vPix - uLens;
       float r = length(t);
-      if (r < uBody) {                         // Linsenkörper mit Randverdunkelung
+      if (r < uBody) {                         // lens body with limb darkening
         float limb = sqrt(1.0 - (r / uBody) * (r / uBody)) * 0.6 + 0.4;
         outColor = vec4(uBodyColor * limb, 1.0); return;
       }
@@ -361,7 +368,7 @@
       if (uMirror == 0 && (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0)) {
         outColor = vec4(0.024, 0.027, 0.047, 1.0); return;
       }
-      outColor = texture(uTex, uv);            // Mipmaps glätten stark verkleinerte Bereiche
+      outColor = texture(uTex, uv);            // mipmaps smooth strongly demagnified regions
     }`;
 
   function makeGL() {
@@ -427,7 +434,7 @@
     };
   }
 
-  // ---------------------------------------------------------- CPU-Rückfall (ohne WebGL2)
+  // ---------------------------------------------------------- CPU fallback (without WebGL2)
   function deflectCPU(P, tx, ty) {
     if (P.model === 0) { const r2 = tx * tx + ty * ty + 1e-12; const f = P.tE * P.tE / r2; return [f * tx, f * ty]; }
     const q = Math.min(Math.max(P.q, 0.05), 1);
@@ -477,11 +484,11 @@
   }
 
   let renderer;
-  try { renderer = makeGL(); } catch (err) { console.warn("WebGL2 nicht nutzbar:", err); renderer = null; }
+  try { renderer = makeGL(); } catch (err) { console.warn("WebGL2 not available:", err); renderer = null; }
   if (!renderer) renderer = makeCPU();
   $("badge").textContent = renderer.name;
 
-  // ---------------------------------------------------------- Rendern
+  // ---------------------------------------------------------- rendering
   let pending = false;
   function schedule() { if (!pending) { pending = true; requestAnimationFrame(draw); } }
 
@@ -500,7 +507,7 @@
         octx.save(); octx.setLineDash([6 * dpr, 6 * dpr]); octx.strokeStyle = "rgba(124,199,255,.8)"; octx.lineWidth = 1.5 * dpr;
         octx.beginPath();
         if (P.model === 1 && P.q < 0.999) {
-          // kritische Kurve des SIE ~ Ellipse mit Halbachsen tE/sqrt(q) und tE*sqrt(q)
+          // critical curve of the SIE ~ ellipse with semi-axes tE/sqrt(q) and tE*sqrt(q)
           octx.ellipse(P.lx, P.ly, P.tE / Math.sqrt(P.q), P.tE * Math.sqrt(P.q), P.phi, 0, 2 * Math.PI);
         } else {
           octx.arc(P.lx, P.ly, P.tE, 0, 2 * Math.PI);
@@ -511,31 +518,31 @@
     }
   }
 
-  // ---------------------------------------------------------- Anzeige
+  // ---------------------------------------------------------- display
   function updateReadout(geo) {
     $("o-mass").textContent = fmtMass(geo.M);
     const cf = 10 ** +ui.cfac.value;
-    $("o-cfac").textContent = cf >= 0.999 ? "real" : (cf >= 1e-3 ? (cf * 100).toPrecision(3) + " %" : (cf / 10 ** Math.floor(Math.log10(cf))).toFixed(1) + "·10" + sup(Math.floor(Math.log10(cf))) + " c");
+    $("o-cfac").textContent = cf >= 0.999 ? "real" : (cf >= 1e-3 ? p3(cf * 100) + " %" : (cf / 10 ** Math.floor(Math.log10(cf))).toFixed(1) + "·10" + sup(Math.floor(Math.log10(cf))) + " c");
     $("o-dd").textContent = fmtLen(geo.Dd);
-    $("o-ratio").textContent = "D_s = " + fmtLen(geo.Ds);
+    $("o-ratio").textContent = "Dₛ = " + fmtLen(geo.Ds);
     $("o-fov").textContent = fmtAngle(geo.fov);
-    $("r-thetaE").textContent = fmtAngle(geo.thetaE) + " · " + Math.round(geo.thetaE / geo.fov * 100) + " % des Bilds";
+    $("r-thetaE").textContent = fmtAngle(geo.thetaE) + " · " + Math.round(geo.thetaE / geo.fov * 100) + " % of the image";
     $("r-rs").textContent = fmtLen(geo.rs);
     $("r-c").textContent = fmtSpeed(geo.c);
     $("r-mass").textContent = fmtMass(geo.M);
-    $("o-q").textContent = (+ui.q.value).toFixed(2).replace(".", ",");
+    $("o-q").textContent = (+ui.q.value).toFixed(2);
     $("o-phi").textContent = ui.phi.value + "°";
   }
 
-  // ---------------------------------------------------------- Szenarien
+  // ---------------------------------------------------------- scenarios
   const SUN = { R: 6.957e8, rgb: [255, 214, 140] };
   const scenarios = {
     galaxy: { model: "sie", mass: 1e12 * MSUN, c: 1, Dd: 1e9 * PC, ratio: 2.2, fov: null },
-    // Eddington 1919: θ_E ≈ 41″ liegt *innerhalb* der Sonnenscheibe (≈ 960″) -> kein Ring sichtbar
+    // Eddington 1919: θ_E ≈ 41″ lies *inside* the solar disk (≈ 960″) -> no ring visible
     sun:     { model: "point", mass: MSUN, c: 1, Dd: AU, ratio: 1e6, fov: 3 * 3600, body: SUN },
-    // bei 1 % von c ist θ_E 100× größer und der Einsteinring ragt über den Sonnenrand hinaus
+    // at 1 % of c, θ_E is 100× larger and the Einstein ring extends beyond the solar limb
     slowsun: { model: "point", mass: MSUN, c: 0.01, Dd: AU, ratio: 1e6, fov: 4 * 3600, body: SUN },
-    // ~3 Erdmassen, kollabiert auf Murmelgröße (r_s ≈ 2,7 cm), 1 m vor dir, Wand 3 m entfernt
+    // ~3 Earth masses collapsed to marble size (r_s ≈ 2.7 cm), 1 m in front of you, wall 3 m away
     room:    { model: "point", mass: 3 * MEARTH, c: 1, Dd: 1.0, ratio: 3, fov: 60 * 3600 },
   };
   function applyScenario(key) {
@@ -587,7 +594,7 @@
   ["dragleave", "drop"].forEach((ev) => stage.addEventListener(ev, (e) => { e.preventDefault(); stage.classList.remove("drop"); }));
   stage.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
 
-  // Linse ziehen
+  // drag the lens
   let dragging = false;
   function moveLens(e) {
     const r = canvas.getBoundingClientRect();
@@ -602,7 +609,7 @@
   $("download").addEventListener("click", () => {
     canvas.toBlob((blob) => {
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = "gelinst.png"; a.click();
+      a.href = URL.createObjectURL(blob); a.download = "lensed.png"; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }, "image/png");
   });
