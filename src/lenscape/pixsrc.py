@@ -1,27 +1,27 @@
-"""Pixelierte Quellrekonstruktion mit Regularisierung (Bayes'sche semi-lineare Inversion).
+"""Pixelated source reconstruction with regularization (Bayesian semi-linear inversion).
 
-Statt die Quelle durch ein glattes Profil zu beschreiben, wird sie auf einem
-Pixelgitter frei rekonstruiert. Bei festem Linsenmodell ist das Bild linear in
-den Quellpixeln s:
+Instead of describing the source by a smooth profile, it is reconstructed
+freely on a pixel grid. For a fixed lens model the image is linear in the
+source pixels s:
 
     d = M s + n,      M = B · L
 
-* L  bildet Quellpixel auf Bildpixel ab (Strahlenverfolgung + bilineare Gewichte)
-* B  faltet mit der PSF
-* n  Rauschen mit Kovarianz C (diagonal, σ²)
+* L  maps source pixels to image pixels (ray tracing + bilinear weights)
+* B  convolves with the PSF
+* n  noise with covariance C (diagonal, σ²)
 
-Weil das Problem schlecht gestellt ist, wird eine Glattheitsforderung
-λ · ½ sᵀ H s addiert (Gradient- oder Krümmungsregularisierung). Die beste Lösung
+Because the problem is ill-posed, a smoothness prior λ · ½ sᵀ H s is added
+(gradient or curvature regularization). The most probable solution
 
     s_MP = A⁻¹ Mᵀ C⁻¹ d,      A = Mᵀ C⁻¹ M + λ H
 
-und die Regularisierungsstärke λ folgen aus der Bayes-Evidenz (Suyu, Marshall,
-Hobson & Blandford 2006, MNRAS 371, 983; Warren & Dye 2003):
+and the regularization strength λ follow from the Bayesian evidence (Suyu,
+Marshall, Hobson & Blandford 2006, MNRAS 371, 983; Warren & Dye 2003):
 
-    ln P(d|λ) = −E_D − λ E_S − ½ ln det A + ½ N_s ln λ + ½ ln det H + konst.
+    ln P(d|λ) = −E_D − λ E_S − ½ ln det A + ½ N_s ln λ + ½ ln det H + const.
 
-Die Evidenz bewertet auch verschiedene Linsenmodelle: Ein besseres Modell
-erklärt die Daten mit einer einfacheren (glatteren) Quelle.
+The evidence also ranks different lens models: a better model explains the
+data with a simpler (smoother) source.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ from .lenses import Lens
 
 @dataclass
 class SourceGrid:
-    """Quadratisches Pixelgitter in der Quellebene (arcsec)."""
+    """Square pixel grid in the source plane (arcsec)."""
 
     n: int = 40
     half: float = 0.6
@@ -68,11 +68,11 @@ def _image_coords(shape, pixscale, supersample):
 
 
 def mapping_matrix(lens_fn, shape, pixscale: float, grid: SourceGrid, supersample: int = 2) -> sp.csr_matrix:
-    """L: (N_Bild × N_Quelle). ``lens_fn(x, y) -> (βx, βy)`` ist die Strahlenverfolgung.
+    """L: (N_image × N_source). ``lens_fn(x, y) -> (βx, βy)`` is the ray-tracing function.
 
-    Jedes Bildpixel wird in supersample² Unterstrahlen zerlegt; jeder trifft die
-    Quellebene und verteilt sein Gewicht bilinear auf die vier umliegenden
-    Quellpixel. Strahlen außerhalb des Gitters tragen nichts bei.
+    Each image pixel is split into supersample² sub-rays; each one hits the
+    source plane and distributes its weight bilinearly onto the four
+    surrounding source pixels. Rays outside the grid contribute nothing.
     """
     X, Y = _image_coords(shape, pixscale, supersample)
     bx, by = lens_fn(X, Y)
@@ -84,7 +84,7 @@ def mapping_matrix(lens_fn, shape, pixscale: float, grid: SourceGrid, supersampl
     fu, fv = u - i0, v - j0
     ny, nx = shape
     s = supersample
-    # Index des groben Bildpixels jedes Unterstrahls
+    # index of the coarse image pixel of each sub-ray
     rows_fine = (np.arange(ny * s)[:, None] // s) * nx + (np.arange(nx * s)[None, :] // s)
     rows, cols, vals = [], [], []
     for di, dj, wgt in ((0, 0, (1 - fu) * (1 - fv)), (1, 0, fu * (1 - fv)), (0, 1, (1 - fu) * fv), (1, 1, fu * fv)):
@@ -99,7 +99,7 @@ def mapping_matrix(lens_fn, shape, pixscale: float, grid: SourceGrid, supersampl
 
 
 def psf_matrix(shape, psf: np.ndarray) -> sp.csr_matrix:
-    """B: Faltung mit dem (kleinen) PSF-Kern als dünnbesetzte Matrix (Nullen außerhalb)."""
+    """B: convolution with the (small) PSF kernel as a sparse matrix (zeros outside)."""
     ny, nx = shape
     kh, kw = psf.shape
     cy, cx = kh // 2, kw // 2
@@ -123,11 +123,11 @@ def psf_matrix(shape, psf: np.ndarray) -> sp.csr_matrix:
 
 
 def regularization_matrix(grid: SourceGrid, kind: str = "gradient") -> sp.csr_matrix:
-    """H = Dᵀ D mit Differenzenoperator D und Nullrand (dadurch positiv definit)."""
+    """H = Dᵀ D with difference operator D and zero boundary (which makes it positive definite)."""
     n = grid.n
     I = sp.identity(n, format="csr")
     if kind == "gradient":
-        d1 = sp.diags([np.ones(n), -np.ones(n - 1)], [0, 1], shape=(n, n))  # letzte Zeile: Rand
+        d1 = sp.diags([np.ones(n), -np.ones(n - 1)], [0, 1], shape=(n, n))  # last row: boundary
         Dx = sp.kron(I, d1)
         Dy = sp.kron(d1, I)
         return (Dx.T @ Dx + Dy.T @ Dy).tocsr()
@@ -140,8 +140,8 @@ def regularization_matrix(grid: SourceGrid, kind: str = "gradient") -> sp.csr_ma
 
 @dataclass
 class Inversion:
-    source: np.ndarray          # (n, n) rekonstruierte Quelle
-    model: np.ndarray           # Bildmodell (nur Quellanteil), volle Bildgröße
+    source: np.ndarray          # (n, n) reconstructed source
+    model: np.ndarray           # image model (source part only), full image size
     lam: float
     log_evidence: float
     chi2: float
@@ -154,7 +154,7 @@ class Inversion:
 
 
 class SourceInverter:
-    """Hält Daten, Maske, PSF und Regularisierung; invertiert für beliebige Linsenmodelle."""
+    """Holds data, mask, PSF and regularization; inverts for arbitrary lens models."""
 
     def __init__(self, data, sigma, mask, pixscale: float, psf: np.ndarray, grid: SourceGrid,
                  supersample: int = 2, reg: str = "gradient"):
@@ -195,7 +195,7 @@ class SourceInverter:
         return s, logE, 2 * ED
 
     def invert(self, lens_fn, lam: float | None = None, lam_bounds=(1e-3, 1e4)) -> Inversion:
-        """Quelle rekonstruieren; ohne ``lam`` wird λ über die Evidenz optimiert."""
+        """Reconstruct the source; without ``lam``, λ is optimized via the evidence."""
         M_full, M, F, b = self._system(lens_fn)
         if lam is None:
             def neg(loglam):
@@ -211,10 +211,10 @@ class SourceInverter:
 def fit_lens_by_evidence(inverter: SourceInverter, make_lens, p0: dict[str, float], free: list[str],
                          scales: dict[str, float] | None = None, n_rounds: int = 2, maxiter: int = 400,
                          verbose: bool = False):
-    """Linsenparameter so wählen, dass die Bayes-Evidenz maximal wird.
+    """Choose lens parameters that maximize the Bayesian evidence.
 
-    ``make_lens(params) -> Lens``. Abwechselnd: λ bei festem Modell optimieren,
-    dann die Modellparameter bei festem λ (Nelder-Mead). Rückgabe: (params, Inversion).
+    ``make_lens(params) -> Lens``. Alternates: optimize λ for a fixed model,
+    then the model parameters for fixed λ (Nelder-Mead). Returns (params, Inversion).
     """
     from scipy.optimize import minimize
 
@@ -241,6 +241,6 @@ def fit_lens_by_evidence(inverter: SourceInverter, make_lens, p0: dict[str, floa
         p.update(zip(free, res.x * sc))
         inv = inverter.invert(make_lens(p).ray_shoot)
         if verbose:
-            print(f"  Runde {rnd + 1}: ln E = {inv.log_evidence:.1f}, λ = {inv.lam:.3g}, "
+            print(f"  round {rnd + 1}: ln E = {inv.log_evidence:.1f}, λ = {inv.lam:.3g}, "
                   + ", ".join(f"{k} = {p[k]:.4f}" for k in free))
     return p, inv
