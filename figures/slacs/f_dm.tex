@@ -5,8 +5,8 @@
 \begin{tikzpicture}
   \begin{axis}[
       lenscape,
-      title={Anteil Dunkler Materie innerhalb des Einsteinradius},
-      xlabel={$R_\mathrm{E} / R_\mathrm{e}$ \quad (Einsteinradius / Effektivradius)},
+      title={Dark-matter fraction inside the Einstein radius},
+      xlabel={$R_\mathrm{E} / R_\mathrm{e}$ \quad (Einstein radius / effective radius)},
       ylabel={$f_\mathrm{DM}(<R_\mathrm{E})$},
       xmin=0.15, xmax=1.35, ymin=-0.6, ymax=0.9,
       ytick distance=0.2,
@@ -15,17 +15,17 @@
     ]
     \fill[lsGrey, opacity=0.10] (axis cs:0.15,-0.6) rectangle (axis cs:1.35,0);
     \node[font=\scriptsize, text=lsGrey, anchor=south west]
-      at (axis cs:0.17,-0.58) {unphysikalisch: $M_\ast > M_\mathrm{E}$};
+      at (axis cs:0.17,-0.58) {unphysical: $M_\ast > M_\mathrm{E}$};
 
     \addplot[reference, forget plot] coordinates {(0.15,0) (1.35,0)};
 
     \addplot[dataOrange, error bars/.cd, y dir=both, y explicit]
       table[x=x, y=y, y error=ey] {data/f_dm_salp.dat};
-    \addlegendentry{Salpeter-IMF}
+    \addlegendentry{Salpeter IMF}
 
     \addplot[dataBlue, error bars/.cd, y dir=both, y explicit]
       table[x=x, y=y, y error=ey] {data/f_dm_chab.dat};
-    \addlegendentry{Chabrier-IMF}
+    \addlegendentry{Chabrier IMF}
   \end{axis}
 \end{tikzpicture}
 \end{document}
