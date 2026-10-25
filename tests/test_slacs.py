@@ -1,4 +1,4 @@
-"""Tests gegen die veröffentlichten SLACS-Werte (Bolton+2008, Auger+2009)."""
+"""Tests against the published SLACS values (Bolton+2008, Auger+2009)."""
 
 import numpy as np
 import pytest
@@ -9,7 +9,7 @@ from lenscape.strong_lenses import einstein_quantities
 
 pytestmark = pytest.mark.skipif(
     not (DATA_DIR / "slacs_bolton2008" / "table5.dat").exists(),
-    reason="SLACS-Daten fehlen (python scripts/fetch_cds.py)",
+    reason="SLACS data missing (python scripts/fetch_cds.py)",
 )
 
 
@@ -24,16 +24,16 @@ def test_sample_size(slacs):
 
 
 def test_einstein_masses_match_auger2009(slacs):
-    """Unsere M_E müssen die publizierten log M_E (gleiche Kosmologie) reproduzieren."""
+    """Our M_E must reproduce the published log M_E (same cosmology)."""
     m = np.isfinite(slacs["logM_E_auger"])
     assert m.sum() > 55
     dlog = np.log10(slacs["M_E"][m]) - slacs["logM_E_auger"][m]
-    assert np.abs(dlog).max() < 0.015  # Tabelle ist auf 0.01 dex gerundet
+    assert np.abs(dlog).max() < 0.015  # table is rounded to 0.01 dex
 
 
 def test_einstein_radii_kpc_match_auger2009(slacs):
     m = np.isfinite(slacs["R_E_kpc_auger"])
-    # theta_E ist auf 0.01" gerundet -> bis ~1 % Abweichung erwartet
+    # theta_E is rounded to 0.01" -> up to ~1 % deviation expected
     np.testing.assert_allclose(slacs["R_E_kpc"][m], slacs["R_E_kpc_auger"][m], rtol=0.012)
 
 
@@ -46,7 +46,7 @@ def test_stellar_fraction_consistent_with_auger2009(slacs):
 
 
 def test_isothermal_lens_velocity_dispersion_near_unity(slacs):
-    """sigma_SDSS / sigma_SIE ~ 1: Massenprofile sind nahezu isotherm."""
+    """sigma_SDSS / sigma_SIE ~ 1: mass profiles are nearly isothermal."""
     f = slacs["f_SIE"][slacs["good_sigma"]]
     assert 0.85 < np.mean(f) < 1.15
 
