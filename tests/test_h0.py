@@ -41,7 +41,7 @@ def test_distances_match_astropy():
 
 
 def test_synthetic_lens_recovers_h0():
-    """Eine Linse mit schmaler D_dt-Likelihood um den Wert für H0=70 muss H0≈70 liefern."""
+    """A lens with a narrow D_dt likelihood around the H0=70 value must return H0≈70."""
     lens0 = TimeDelayLens("x", 0.5, 2.0, "", lambda dd, ddt: 0.0)
     _, ddt_u = _distances(lens0, 0.3, -1.0)
     ddt_true = ddt_u * 299792.458 / 70.0
@@ -52,9 +52,9 @@ def test_synthetic_lens_recovers_h0():
 
 
 @pytest.mark.skipif(not (H0LICOW_DIR / "J1206_final.csv").exists(),
-                    reason="H0LiCOW-Daten fehlen (python scripts/fetch_h0licow.py)")
+                    reason="H0LiCOW data missing (python scripts/fetch_h0licow.py)")
 def test_reproduces_wong2020_flat_lcdm():
-    """Wong et al. (2020): H0 = 73.3 +1.7 -1.8 km/s/Mpc (sechs Linsen, flaches ΛCDM)."""
+    """Wong et al. (2020): H0 = 73.3 +1.7 -1.8 km/s/Mpc (six lenses, flat ΛCDM)."""
     med, lo, hi = infer_h0(load_h0licow()).summary()
     assert med == pytest.approx(73.3, abs=0.3)
     assert lo == pytest.approx(1.8, abs=0.25)
