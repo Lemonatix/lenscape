@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gravitational lens – bend your own image</title>
+<meta name="description" content="Upload a photo and see how a mass in front of it deflects the light. With sliders for mass, distances and the speed of light.">
+<!-- KaTeX for the formulas; without it the page still works and shows the TeX source -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+  onload="renderMathInElement(document.body, {delimiters: [{left: '\\(', right: '\\)', display: false}]})"></script>
+<style>
+  :root {
+    --bg: #07090f;
+    --panel: #10141e;
+    --line: #232a3a;
+    --text: #e6e9f2;
+    --muted: #8b93a8;
+    --accent: #7cc7ff;
+    --warm: #ffb066;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 22px 20px 6px; max-width: 1280px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 1.55rem; font-weight: 650; letter-spacing: -0.01em; }
+  header p { margin: 4px 0 0; color: var(--muted); max-width: 72ch; }
+  main { max-width: 1280px; margin: 0 auto; padding: 14px 20px 40px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px 32px; } }
+
+  .stage { position: relative; background: #000; border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; touch-action: none; cursor: grab; }
+  .stage.dragging { cursor: grabbing; }
+  .stage canvas { display: block; width: 100%; height: auto; }
+  .stage canvas.overlay { position: absolute; inset: 0; height: 100%; pointer-events: none; }
+  .badge { position: absolute; right: 10px; top: 8px; font-size: 11px; color: #cfd6e6;
+    background: rgba(0,0,0,.5); padding: 2px 7px; border-radius: 6px; pointer-events: none; }
+  .hidden { display: none !important; }
+  /* embedding in other pages (?embed): stage and controls only */
+  body.embed header, body.embed .note { display: none; }
+  body.embed main { padding-top: 12px; }
+  .stage.drop { outline: 2px dashed var(--accent); outline-offset: -8px; }
+  .hint { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: #cfd6e6;
+    background: rgba(0,0,0,.55); padding: 3px 8px; border-radius: 6px; pointer-events: none; }
+  .readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+  .readout div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .readout b { display: block; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+  .readout span { font-size: 12px; color: var(--muted); }
+
+  aside { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px;
+    align-self: start; }
+  aside h2 { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+    margin: 16px 0 8px; font-weight: 600; }
+  aside h2:first-child { margin-top: 0; }
+  .row { margin-bottom: 12px; }
+  .row label { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; }
+  .row label output { color: var(--accent); font-variant-numeric: tabular-nums; text-align: right; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .presets, .toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+  button, .file { background: #1a2131; color: var(--text); border: 1px solid var(--line); border-radius: 7px;
+    padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  button:hover, .file:hover { border-color: var(--accent); }
+  button.on { background: #1d3550; border-color: var(--accent); }
+  .file input { display: none; }
+  .toggles label { font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 14px; }
+  .light { color: var(--warm); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Gravitational lens: bend your own image</h1>
+  <p>A mass in front of your image curves spacetime and deflects the light rays. Drag the lens with the mouse,
+     change mass and distances, or slow the light down.</p>
+</header>
+
+<main>
+  <section>
+    <div class="stage" id="stage">
+      <canvas id="view" width="900" height="600"></canvas>
+      <canvas id="overlay" class="overlay" width="900" height="600"></canvas>
+      <div class="hint" id="hint">drag the lens · drop an image here to upload</div>
+      <div class="badge" id="badge"></div>
+    </div>
+    <div class="readout">
+      <div><b id="r-thetaE">–</b><span>Einstein radius \(\theta_\mathrm{E}\)</span></div>
+      <div><b id="r-rs">–</b><span>Schwarzschild radius \(r_\mathrm{s}\)</span></div>
+      <div><b id="r-c">–</b><span>speed of light \(c\)</span></div>
+      <div><b id="r-mass">–</b><span>mass \(M\)</span></div>
+    </div>
+  </section>
+
+  <aside>
+    <h2>Image</h2>
+    <div class="presets">
+      <label class="file">Upload image…<input type="file" id="file" accept="image/*"></label>
+      <button data-pattern="stars">Star field</button>
+      <button data-pattern="grid">Grid</button>
+      <button id="download">Save result</button>
+    </div>
+
+    <h2>Scenario</h2>
+    <div class="presets" id="scenarios">
+      <button data-scn="galaxy">Galaxy in space</button>
+      <button data-scn="sun">Sun (1919)</button>
+      <button data-scn="room">Black hole in your room</button>
+      <button data-scn="slowsun">Sun, c = 1 %</button>
+    </div>
+
+    <h2>Lens</h2>
+    <div class="presets" id="models">
+      <button data-model="point" class="on">Point mass / black hole</button>
+      <button data-model="sie">Galaxy (elliptical)</button>
+    </div>
+    <div id="sie-controls" class="hidden" style="margin-top:10px">
+      <div class="row">
+        <label for="q"><span>axis ratio \(q\)</span> <output id="o-q"></output></label>
+        <input type="range" id="q" min="0.3" max="1" step="0.01" value="0.75">
+      </div>
+      <div class="row">
+        <label for="phi"><span>orientation</span> <output id="o-phi"></output></label>
+        <input type="range" id="phi" min="0" max="180" step="1" value="30">
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label for="mass"><span>mass \(M\)</span> <output id="o-mass"></output></label>
+      <input type="range" id="mass" min="0" max="44" step="0.01">
+    </div>
+    <div class="row">
+      <label for="cfac"><span>speed of light \(c\)</span> <output id="o-cfac" class="light"></output></label>
+      <input type="range" id="cfac" min="-9" max="0" step="0.01">
+    </div>
+
+    <h2>Geometry</h2>
+    <div class="row">
+      <label for="dd"><span>distance observer → lens \(D_\mathrm{d}\)</span> <output id="o-dd"></output></label>
+      <input type="range" id="dd" min="-1" max="26.5" step="0.01">
+    </div>
+    <div class="row">
+      <label for="ratio"><span>image is … times as far away</span> <output id="o-ratio"></output></label>
+      <input type="range" id="ratio" min="0.005" max="6" step="0.005">
+    </div>
+    <div class="row">
+      <label for="fov"><span>image width (field of view)</span> <output id="o-fov"></output></label>
+      <input type="range" id="fov" min="-4" max="5.3" step="0.01">
+    </div>
+    <div class="presets"><button id="autofov">fit image width to \(\theta_\mathrm{E}\)</button></div>
+
+    <h2>Display</h2>
+    <div class="toggles">
+      <label><input type="checkbox" id="ring" checked> Einstein ring</label>
+      <label><input type="checkbox" id="orig"> show original</label>
+      <label><input type="checkbox" id="mirror" checked> mirror image edges</label>
+    </div>
+
+    <p class="note">Physics: thin lens in the weak-field approximation,
+      \(\beta = \theta - \theta_\mathrm{E}^2/\theta\) (point mass) or \(\beta = \theta - \alpha_\mathrm{SIE}(\theta)\)
+      (elliptical isothermal galaxy, Keeton 2001; for \(q = 1\), \(|\alpha| = \theta_\mathrm{E}\)) with
+      \(\theta_\mathrm{E}^2 = (4GM/c^2)\,D_\mathrm{ds}/(D_\mathrm{d}\,D_\mathrm{s})\).
+      A slower \(c\) strengthens the deflection as \(1/c^2\). Distances are Euclidean
+      (\(D_\mathrm{ds} = D_\mathrm{s} - D_\mathrm{d}\)); the cosmologically correct calculation lives in the Python part of
+      <i>lenscape</i>. For very strong fields (close to the black hole) the approximation is only qualitative.
+      Everything is computed per pixel on the GPU (WebGL2). To embed in other pages: <code>index.html?embed</code>.</p>
+  </aside>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  // ---------------------------------------------------------- constants (SI)
+  const G = 6.674e-11, C0 = 2.99792458e8, MSUN = 1.989e30, MEARTH = 5.972e24;
+  const AU = 1.496e11, LY = 9.461e15, PC = 3.0857e16;
+  const ARCSEC = Math.PI / 180 / 3600;
+
+  // ---------------------------------------------------------- DOM
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("view"), overlay = $("overlay"), octx = overlay.getContext("2d");
+  const stage = $("stage");
+  const ui = {
+    mass: $("mass"), cfac: $("cfac"), dd: $("dd"), ratio: $("ratio"), fov: $("fov"),
+    q: $("q"), phi: $("phi"), ring: $("ring"), orig: $("orig"), mirror: $("mirror"),
+  };
+  if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("embed");
+
+  const state = { model: "point", lensX: 0.5, lensY: 0.5, body: null }; // body: opaque lens body
+  let src = null; // {w, h, data, canvas}
+
+  // ---------------------------------------------------------- formatting
+  function fmtLen(m) {
+    if (m < 1) return p3(m * 100) + " cm";
+    if (m < 1e3) return p3(m) + " m";
+    if (m < 0.1 * AU) return p3(m / 1e3) + " km";
+    if (m < 0.2 * LY) return p3(m / AU) + " AU";
+    if (m < 1e3 * PC) return p3(m / LY) + " ly";
+    if (m < 1e6 * PC) return p3(m / PC / 1e3) + " kpc";
+    if (m < 1e9 * PC) return p3(m / PC / 1e6) + " Mpc";
+    return p3(m / PC / 1e9) + " Gpc";
+  }
+  function fmtAngle(rad) {
+    const a = rad / ARCSEC;
+    if (a < 1e-3) return p3(a * 1e6) + " µas";
+    if (a < 1) return p3(a * 1e3) + " mas";
+    if (a < 60) return p3(a) + "″";
+    if (a < 3600) return p3(a / 60) + "′";
+    return p3(a / 3600) + "°";
+  }
+  function fmtMass(kg) {
+    const sci = (v) => {
+      const e = Math.floor(Math.log10(v));
+      return e >= -2 && e <= 3 ? p3(v) : (v / 10 ** e).toFixed(2) + "·10" + sup(e);
+    };
+    if (kg < 0.1 * MEARTH) return sci(kg) + " kg";
+    if (kg < 0.05 * MSUN) return sci(kg / MEARTH) + " Earth masses";
+    return sci(kg / MSUN) + " M☉";
+  }
+  // three significant digits, never in exponent notation: 29600 -> "29,600"
+  function p3(x) { return x.toLocaleString("en-US", { minimumSignificantDigits: 3, maximumSignificantDigits: 3 }); }
+  function sup(n) { return String(n).replace(/[-0-9]/g, (d) => "⁻⁰¹²³⁴⁵⁶⁷⁸⁹"["-0123456789".indexOf(d)]); }
+  function fmtSpeed(v) {
+    if (v >= 1e6) { const e = Math.floor(Math.log10(v / 1e3)); return (v / 1e3 / 10 ** e).toFixed(2) + "·10" + sup(e) + " km/s"; }
+    if (v >= 1e3) return p3(v / 1e3) + " km/s";
+    return p3(v * 3.6) + " km/h";
+  }
+
+  // ---------------------------------------------------------- physics
+  function geometry() {
+    const M = 10 ** +ui.mass.value;
+    const c = C0 * 10 ** +ui.cfac.value;
+    const Dd = 10 ** +ui.dd.value;
+    const Ds = Dd * 10 ** +ui.ratio.value; // the ratio slider is log10(D_s/D_d)
+    const Dds = Ds - Dd;
+    const rs = 2 * G * M / (c * c);
+    const thetaE = Math.sqrt(4 * G * M / (c * c) * Dds / (Dd * Ds));
+    // photon-sphere shadow: impact parameter b < 3√3/2 · r_s is captured
+    const thetaShadow = state.model === "point" ? Math.min(1.5 * Math.sqrt(3) * rs / Dd, Math.PI / 2) : 0;
+    const fov = 10 ** +ui.fov.value * ARCSEC; // image width (rad)
+    const thetaBody = state.body ? Math.atan(state.body.R / Dd) : 0;
+    return { M, c, Dd, Ds, Dds, rs, thetaE, thetaShadow, thetaBody, fov };
+  }
+
+  // ---------------------------------------------------------- test images
+  function makePattern(kind) {
+    const w = 1200, h = 800;
+    const oc = document.createElement("canvas"); oc.width = w; oc.height = h;
+    const g = oc.getContext("2d");
+    if (kind === "grid") {
+      g.fillStyle = "#0b1020"; g.fillRect(0, 0, w, h);
+      for (let i = 0; i <= 24; i++) {
+        g.strokeStyle = i % 4 === 0 ? "#7cc7ff" : "#2c4a6e"; g.lineWidth = i % 4 === 0 ? 3 : 1.5;
+        g.beginPath(); g.moveTo(i * w / 24, 0); g.lineTo(i * w / 24, h); g.stroke();
+      }
+      for (let j = 0; j <= 16; j++) {
+        g.strokeStyle = j % 4 === 0 ? "#ffb066" : "#5a3d22"; g.lineWidth = j % 4 === 0 ? 3 : 1.5;
+        g.beginPath(); g.moveTo(0, j * h / 16); g.lineTo(w, j * h / 16); g.stroke();
+      }
+      g.fillStyle = "#fff"; g.font = "bold 90px system-ui"; g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillText("lenscape", w / 2, h / 2);
+    } else {
+      // star field with a few background galaxies (deterministic)
+      let s = 7; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+      g.fillStyle = "#03040a"; g.fillRect(0, 0, w, h);
+      for (let k = 0; k < 14; k++) {
+        const x = rnd() * w, y = rnd() * h, r = 12 + rnd() * 40, ang = rnd() * Math.PI, q = 0.3 + rnd() * 0.6;
+        const hue = rnd() < 0.5 ? "255,190,120" : "150,190,255";
+        g.save(); g.translate(x, y); g.rotate(ang); g.scale(1, q);
+        const gr = g.createRadialGradient(0, 0, 0, 0, 0, r);
+        gr.addColorStop(0, `rgba(${hue},0.95)`); gr.addColorStop(0.35, `rgba(${hue},0.35)`); gr.addColorStop(1, `rgba(${hue},0)`);
+        g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, 2 * Math.PI); g.fill(); g.restore();
+      }
+      for (let k = 0; k < 1600; k++) {
+        const x = rnd() * w, y = rnd() * h, b = rnd() ** 3;
+        const r = 0.6 + b * 2.2;
+        g.fillStyle = `rgba(255,255,255,${0.35 + 0.65 * b})`;
+        g.beginPath(); g.arc(x, y, r, 0, 2 * Math.PI); g.fill();
+      }
+    }
+    return grab(oc);
+  }
+  function grab(imgOrCanvas) {
+    const maxW = 2048;  // safely below the texture limit of all WebGL2 devices
+    const w0 = imgOrCanvas.naturalWidth || imgOrCanvas.width, h0 = imgOrCanvas.naturalHeight || imgOrCanvas.height;
+    const k = Math.min(1, maxW / Math.max(w0, h0));
+    const w = Math.round(w0 * k), h = Math.round(h0 * k);
+    const oc = document.createElement("canvas"); oc.width = w; oc.height = h;
+    const g = oc.getContext("2d"); g.drawImage(imgOrCanvas, 0, 0, w, h);
+    return { w, h, canvas: oc, data: null };
+  }
+  function setSource(s) {
+    src = s;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = Math.round(Math.min(2200, Math.max(600, stage.clientWidth * dpr)));
+    const H = Math.round(W * s.h / s.w);
+    canvas.width = overlay.width = W;
+    canvas.height = overlay.height = H;
+    renderer.setSource(s);
+    schedule();
+  }
+
+  // ---------------------------------------------------------- lens physics in pixel units
+  // shared parameters for GPU and CPU: all angles in screen pixels.
+  function lensParams(geo) {
+    const W = canvas.width, H = canvas.height;
+    const radPerPx = geo.fov / W;
+    return {
+      W, H,
+      lx: state.lensX * W, ly: state.lensY * H,
+      tE: geo.thetaE / radPerPx,
+      tSh: geo.thetaShadow / radPerPx,
+      tB: geo.thetaBody / radPerPx,
+      model: state.model === "point" ? 0 : 1,
+      q: +ui.q.value,
+      phi: (+ui.phi.value) * Math.PI / 180,
+      mirror: ui.mirror.checked,
+      orig: ui.orig.checked,
+      body: state.body,
+    };
+  }
+
+  // ---------------------------------------------------------- GPU renderer (WebGL2)
+  const VERT = `#version 300 es
+    in vec2 aPos; out vec2 vPix; uniform vec2 uSize;
+    void main() {
+      vPix = (aPos * 0.5 + 0.5) * uSize;      // pixel coordinates, y up
+      vPix.y = uSize.y - vPix.y;              // y down as in the image
+      gl_Position = vec4(aPos, 0.0, 1.0);
+    }`;
+  const FRAG = `#version 300 es
+    precision highp float;
+    in vec2 vPix; out vec4 outColor;
+    uniform sampler2D uTex;
+    uniform vec2 uSize, uLens;
+    uniform float uTE, uShadow, uBody, uQ, uPhi;
+    uniform int uModel, uMirror, uOrig;
+    uniform vec3 uBodyColor;
+
+    vec2 deflect(vec2 t) {
+      if (uModel == 0) {                       // point mass: alpha = tE^2 theta/|theta|^2
+        return uTE * uTE * t / max(dot(t, t), 1e-12);
+      }
+      // SIE (Keeton 2001), intermediate-axis normalization as in lenscape.lenses.SIE
+      float q = clamp(uQ, 0.05, 1.0);
+      if (q > 0.999) return uTE * t / max(length(t), 1e-9);
+      float c = cos(uPhi), s = sin(uPhi);
+      vec2 r = vec2(c * t.x + s * t.y, -s * t.x + c * t.y);
+      float psi = sqrt(q * q * r.x * r.x + r.y * r.y) + 1e-9;
+      float e = sqrt(1.0 - q * q);
+      float pre = uTE * sqrt(q) / e;
+      float ax = pre * atan(e * r.x / psi);
+      float z = clamp(e * r.y / psi, -0.999999, 0.999999);
+      float ay = pre * 0.5 * log((1.0 + z) / (1.0 - z));   // atanh
+      return vec2(c * ax - s * ay, s * ax + c * ay);
+    }
+
+    void main() {
+      vec2 uv;
+      if (uOrig == 1) { uv = vPix / uSize; outColor = texture(uTex, uv); return; }
+      vec2 t = vPix - uLens;
+      float r = length(t);
+      if (r < uBody) {                         // lens body with limb darkening
+        float limb = sqrt(1.0 - (r / uBody) * (r / uBody)) * 0.6 + 0.4;
+        outColor = vec4(uBodyColor * limb, 1.0); return;
+      }
+      if (r < uShadow) { outColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
+      vec2 beta = t - deflect(t);
+      uv = (uLens + beta) / uSize;
+      if (uMirror == 0 && (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0)) {
+        outColor = vec4(0.024, 0.027, 0.047, 1.0); return;
+      }
+      outColor = texture(uTex, uv);            // mipmaps smooth strongly demagnified regions
+    }`;
+
+  function makeGL() {
+    const gl = canvas.getContext("webgl2", { preserveDrawingBuffer: true, antialias: false });
+    if (!gl) return null;
+    const sh = (type, code) => {
+      const o = gl.createShader(type); gl.shaderSource(o, code); gl.compileShader(o);
+      if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o));
+      return o;
+    };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, VERT));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FRAG));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    gl.useProgram(prog);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, "aPos");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const U = {};
+    for (const n of ["uTex", "uSize", "uLens", "uTE", "uShadow", "uBody", "uQ", "uPhi", "uModel", "uMirror", "uOrig", "uBodyColor"])
+      U[n] = gl.getUniformLocation(prog, n);
+    const tex = gl.createTexture();
+    let mirrorState = null;
+
+    return {
+      name: "GPU (WebGL2)",
+      setSource(s) {
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, s.canvas);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        mirrorState = null;
+      },
+      draw(P) {
+        gl.viewport(0, 0, P.W, P.H);
+        if (mirrorState !== P.mirror) {
+          const wrap = P.mirror ? gl.MIRRORED_REPEAT : gl.CLAMP_TO_EDGE;
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
+          mirrorState = P.mirror;
+        }
+        gl.uniform1i(U.uTex, 0);
+        gl.uniform2f(U.uSize, P.W, P.H);
+        gl.uniform2f(U.uLens, P.lx, P.ly);
+        gl.uniform1f(U.uTE, P.tE);
+        gl.uniform1f(U.uShadow, P.tSh);
+        gl.uniform1f(U.uBody, P.tB);
+        gl.uniform1f(U.uQ, P.q);
+        gl.uniform1f(U.uPhi, P.phi);
+        gl.uniform1i(U.uModel, P.model);
+        gl.uniform1i(U.uMirror, P.mirror ? 1 : 0);
+        gl.uniform1i(U.uOrig, P.orig ? 1 : 0);
+        const c = P.body ? P.body.rgb.map((v) => v / 255) : [0, 0, 0];
+        gl.uniform3f(U.uBodyColor, c[0], c[1], c[2]);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      },
+    };
+  }
+
+  // ---------------------------------------------------------- CPU fallback (without WebGL2)
+  function deflectCPU(P, tx, ty) {
+    if (P.model === 0) { const r2 = tx * tx + ty * ty + 1e-12; const f = P.tE * P.tE / r2; return [f * tx, f * ty]; }
+    const q = Math.min(Math.max(P.q, 0.05), 1);
+    if (q > 0.999) { const r = Math.hypot(tx, ty) + 1e-9; return [P.tE * tx / r, P.tE * ty / r]; }
+    const c = Math.cos(P.phi), s = Math.sin(P.phi);
+    const rx = c * tx + s * ty, ry = -s * tx + c * ty;
+    const psi = Math.sqrt(q * q * rx * rx + ry * ry) + 1e-9, e = Math.sqrt(1 - q * q), pre = P.tE * Math.sqrt(q) / e;
+    const ax = pre * Math.atan(e * rx / psi);
+    const ay = pre * Math.atanh(Math.max(-0.999999, Math.min(0.999999, e * ry / psi)));
+    return [c * ax - s * ay, s * ax + c * ay];
+  }
+  function makeCPU() {
+    const ctx = canvas.getContext("2d");
+    let data = null, sw = 0, sh = 0;
+    const reflect = (x, n) => { const T = 2 * (n - 1); let m = ((x % T) + T) % T; return m > n - 1 ? T - m : m; };
+    return {
+      name: "CPU",
+      setSource(s) { sw = s.w; sh = s.h; data = s.canvas.getContext("2d").getImageData(0, 0, sw, sh).data; },
+      draw(P) {
+        if (P.orig) { ctx.drawImage(src.canvas, 0, 0, P.W, P.H); return; }
+        const out = ctx.createImageData(P.W, P.H), d = out.data;
+        const kx = sw / P.W, ky = sh / P.H;
+        let p = 0;
+        for (let j = 0; j < P.H; j++) {
+          const ty = j + 0.5 - P.ly;
+          for (let i = 0; i < P.W; i++, p += 4) {
+            const tx = i + 0.5 - P.lx, r = Math.hypot(tx, ty);
+            if (r < P.tB) {
+              const limb = Math.sqrt(1 - (r / P.tB) ** 2) * 0.6 + 0.4;
+              d[p] = P.body.rgb[0] * limb; d[p + 1] = P.body.rgb[1] * limb; d[p + 2] = P.body.rgb[2] * limb; d[p + 3] = 255; continue;
+            }
+            if (r < P.tSh) { d[p] = d[p + 1] = d[p + 2] = 0; d[p + 3] = 255; continue; }
+            const [ax, ay] = deflectCPU(P, tx, ty);
+            let u = (P.lx + tx - ax) * kx - 0.5, v = (P.ly + ty - ay) * ky - 0.5;
+            if (P.mirror) { u = Math.min(reflect(u, sw), sw - 1.001); v = Math.min(reflect(v, sh), sh - 1.001); }
+            const x0 = Math.floor(u), y0 = Math.floor(v);
+            if (x0 < 0 || y0 < 0 || x0 >= sw - 1 || y0 >= sh - 1) { d[p] = 6; d[p + 1] = 7; d[p + 2] = 12; d[p + 3] = 255; continue; }
+            const fx = u - x0, fy = v - y0, a = (y0 * sw + x0) * 4, b = a + 4, c = a + sw * 4, e = c + 4;
+            const w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+            for (let k = 0; k < 3; k++) d[p + k] = data[a + k] * w00 + data[b + k] * w10 + data[c + k] * w01 + data[e + k] * w11;
+            d[p + 3] = 255;
+          }
+        }
+        ctx.putImageData(out, 0, 0);
+      },
+    };
+  }
+
+  let renderer;
+  try { renderer = makeGL(); } catch (err) { console.warn("WebGL2 not available:", err); renderer = null; }
+  if (!renderer) renderer = makeCPU();
+  $("badge").textContent = renderer.name;
+
+  // ---------------------------------------------------------- rendering
+  let pending = false;
+  function schedule() { if (!pending) { pending = true; requestAnimationFrame(draw); } }
+
+  function draw() {
+    pending = false;
+    if (!src) return;
+    const geo = geometry();
+    updateReadout(geo);
+    const P = lensParams(geo);
+    renderer.draw(P);
+
+    octx.clearRect(0, 0, P.W, P.H);
+    if (ui.ring.checked && !P.orig) {
+      const dpr = P.W / canvas.getBoundingClientRect().width;
+      if (P.tE > 2 && P.tE < 4 * P.W) {
+        octx.save(); octx.setLineDash([6 * dpr, 6 * dpr]); octx.strokeStyle = "rgba(124,199,255,.8)"; octx.lineWidth = 1.5 * dpr;
+        octx.beginPath();
+        if (P.model === 1 && P.q < 0.999) {
+          // critical curve of the SIE ~ ellipse with semi-axes tE/sqrt(q) and tE*sqrt(q)
+          octx.ellipse(P.lx, P.ly, P.tE / Math.sqrt(P.q), P.tE * Math.sqrt(P.q), P.phi, 0, 2 * Math.PI);
+        } else {
+          octx.arc(P.lx, P.ly, P.tE, 0, 2 * Math.PI);
+        }
+        octx.stroke(); octx.restore();
+      }
+      octx.fillStyle = "rgba(255,176,102,.9)"; octx.beginPath(); octx.arc(P.lx, P.ly, 3 * dpr, 0, 2 * Math.PI); octx.fill();
+    }
+  }
+
+  // ---------------------------------------------------------- display
+  function updateReadout(geo) {
+    $("o-mass").textContent = fmtMass(geo.M);
+    const cf = 10 ** +ui.cfac.value;
+    $("o-cfac").textContent = cf >= 0.999 ? "real" : (cf >= 1e-3 ? p3(cf * 100) + " %" : (cf / 10 ** Math.floor(Math.log10(cf))).toFixed(1) + "·10" + sup(Math.floor(Math.log10(cf))) + " c");
+    $("o-dd").textContent = fmtLen(geo.Dd);
+    $("o-ratio").textContent = "Dₛ = " + fmtLen(geo.Ds);
+    $("o-fov").textContent = fmtAngle(geo.fov);
+    $("r-thetaE").textContent = fmtAngle(geo.thetaE) + " · " + Math.round(geo.thetaE / geo.fov * 100) + " % of the image";
+    $("r-rs").textContent = fmtLen(geo.rs);
+    $("r-c").textContent = fmtSpeed(geo.c);
+    $("r-mass").textContent = fmtMass(geo.M);
+    $("o-q").textContent = (+ui.q.value).toFixed(2);
+    $("o-phi").textContent = ui.phi.value + "°";
+  }
+
+  // ---------------------------------------------------------- scenarios
+  const SUN = { R: 6.957e8, rgb: [255, 214, 140] };
+  const scenarios = {
+    galaxy: { model: "sie", mass: 1e12 * MSUN, c: 1, Dd: 1e9 * PC, ratio: 2.2, fov: null },
+    // Eddington 1919: θ_E ≈ 41″ lies *inside* the solar disk (≈ 960″) -> no ring visible
+    sun:     { model: "point", mass: MSUN, c: 1, Dd: AU, ratio: 1e6, fov: 3 * 3600, body: SUN },
+    // at 1 % of c, θ_E is 100× larger and the Einstein ring extends beyond the solar limb
+    slowsun: { model: "point", mass: MSUN, c: 0.01, Dd: AU, ratio: 1e6, fov: 4 * 3600, body: SUN },
+    // ~3 Earth masses collapsed to marble size (r_s ≈ 2.7 cm), 1 m in front of you, wall 3 m away
+    room:    { model: "point", mass: 3 * MEARTH, c: 1, Dd: 1.0, ratio: 3, fov: 60 * 3600 },
+  };
+  function applyScenario(key) {
+    const s = scenarios[key];
+    setModel(s.model);
+    ui.mass.value = Math.log10(s.mass);
+    ui.cfac.value = Math.log10(s.c);
+    ui.dd.value = Math.log10(s.Dd);
+    ui.ratio.value = Math.log10(s.ratio);
+    state.body = s.body || null;
+    if (s.fov) ui.fov.value = Math.log10(s.fov); else autoFov();
+    state.lensX = 0.5; state.lensY = 0.5;
+    document.querySelectorAll("#scenarios button").forEach((b) => b.classList.toggle("on", b.dataset.scn === key));
+    schedule();
+  }
+  function autoFov() {
+    const geo = geometry();
+    const target = Math.max(5 * geo.thetaE, 4 * geo.thetaShadow);
+    ui.fov.value = Math.min(+ui.fov.max, Math.max(+ui.fov.min, Math.log10(target / ARCSEC)));
+    schedule();
+  }
+  function setModel(m) {
+    state.model = m;
+    if (m === "sie") state.body = null;
+    $("sie-controls").classList.toggle("hidden", m !== "sie");
+    document.querySelectorAll("#models button").forEach((b) => b.classList.toggle("on", b.dataset.model === m));
+    schedule();
+  }
+
+  // ---------------------------------------------------------- Events
+  Object.values(ui).forEach((el) => el.addEventListener("input", () => {
+    document.querySelectorAll("#scenarios button").forEach((b) => b.classList.remove("on"));
+    schedule();
+  }));
+  document.querySelectorAll("[data-scn]").forEach((b) => b.addEventListener("click", () => applyScenario(b.dataset.scn)));
+  document.querySelectorAll("[data-model]").forEach((b) => b.addEventListener("click", () => setModel(b.dataset.model)));
+  document.querySelectorAll("[data-pattern]").forEach((b) => b.addEventListener("click", () => setSource(makePattern(b.dataset.pattern))));
+  $("autofov").addEventListener("click", autoFov);
+
+  function loadFile(file) {
+    if (!file || !file.type.startsWith("image/")) return;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { setSource(grab(img)); URL.revokeObjectURL(url); };
+    img.src = url;
+  }
+  $("file").addEventListener("change", (e) => loadFile(e.target.files[0]));
+  ["dragenter", "dragover"].forEach((ev) => stage.addEventListener(ev, (e) => { e.preventDefault(); stage.classList.add("drop"); }));
+  ["dragleave", "drop"].forEach((ev) => stage.addEventListener(ev, (e) => { e.preventDefault(); stage.classList.remove("drop"); }));
+  stage.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
+
+  // drag the lens
+  let dragging = false;
+  function moveLens(e) {
+    const r = canvas.getBoundingClientRect();
+    state.lensX = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    state.lensY = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    schedule();
+  }
+  stage.addEventListener("pointerdown", (e) => { dragging = true; stage.classList.add("dragging"); stage.setPointerCapture(e.pointerId); moveLens(e); });
+  stage.addEventListener("pointermove", (e) => { if (dragging) moveLens(e); });
+  stage.addEventListener("pointerup", () => { dragging = false; stage.classList.remove("dragging"); });
+
+  $("download").addEventListener("click", () => {
+    canvas.toBlob((blob) => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "lensed.png"; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, "image/png");
+  });
+
+  // ---------------------------------------------------------- Start
+  setSource(makePattern("stars"));
+  applyScenario("room");
+})();
+</script>
+</body>
+</html>
