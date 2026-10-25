@@ -1,15 +1,15 @@
-% Gemeinsamer Stil aller lenscape-Abbildungen (TikZ/pgfplots).
-% Einbinden mit \input{../lenscape-style} aus einem Abbildungsordner.
+% Shared style of all lenscape figures (TikZ/pgfplots).
+% Include with \input{../lenscape-style} from a figure folder.
 
-% Schrift: Computer Modern (in jeder TeX-Installation vorhanden, passt zu LaTeX-Dokumenten).
-% Für Latin Modern: \usepackage[T1]{fontenc}\usepackage{lmodern}
+% Font: Computer Modern (available in every TeX installation, matches LaTeX documents).
+% For Latin Modern: \usepackage[T1]{fontenc}\usepackage{lmodern}
 \usepackage{amsmath}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
 \usepgfplotslibrary{groupplots}
 \usetikzlibrary{calc}
 
-% ---------------------------------------------------------------- Farben
+% ---------------------------------------------------------------- colours
 \definecolor{lsBlue}{HTML}{2A6FDB}
 \definecolor{lsOrange}{HTML}{E8833A}
 \definecolor{lsGrey}{HTML}{6B7280}
@@ -17,7 +17,7 @@
 \definecolor{lsInk}{HTML}{1F2937}
 \definecolor{lsRed}{HTML}{C2413A}
 \definecolor{lsGreen}{HTML}{2E8B57}
-% sechs gut unterscheidbare Farben für Einzelobjekte
+% six easily distinguishable colours for individual objects
 \definecolor{lsC1}{HTML}{2A6FDB}
 \definecolor{lsC2}{HTML}{E8833A}
 \definecolor{lsC3}{HTML}{2E8B57}
@@ -25,18 +25,14 @@
 \definecolor{lsC5}{HTML}{C2413A}
 \definecolor{lsC6}{HTML}{8C6D31}
 
-% Deutsches Dezimalkomma auch für Zahlen außerhalb von Achsen
-\pgfkeys{/pgf/number format/use comma}
+% English quotation marks
+\providecommand{\enquote}[1]{``#1''}
 
-% deutsche Anführungszeichen ohne babel/T1
-\providecommand{\glqq}{\raisebox{-0.9ex}{''}}
-\providecommand{\grqq}{``}
-
-% ---------------------------------------------------------------- Kürzel
+% ---------------------------------------------------------------- shorthands
 \newcommand{\Msun}{\ensuremath{M_\odot}}
 \newcommand{\thetaE}{\ensuremath{\theta_\mathrm{E}}}
 
-% ---------------------------------------------------------------- Achsenstil
+% ---------------------------------------------------------------- axis style
 \pgfplotsset{
   lenscape/.style={
     width=8.6cm, height=5.8cm,
@@ -48,16 +44,16 @@
     grid=major, major grid style={lsGrid, line width=0.4pt},
     legend style={font=\footnotesize, draw=none, fill=white, fill opacity=0.85, text opacity=1},
     legend cell align=left,
-    /pgf/number format/use comma,
+    /pgf/number format/use period,
     scaled ticks=false,
   },
   lenscape wide/.style={lenscape, width=8.2cm, height=6.2cm},
-  % Datenpunkte
+  % data points
   dataBlue/.style={only marks, mark=*, mark size=1.4pt, color=lsBlue, fill opacity=0.85,
                    error bars/error bar style={lsBlue!60, line width=0.4pt}},
   dataOrange/.style={only marks, mark=square*, mark size=1.3pt, color=lsOrange, fill opacity=0.85,
                      error bars/error bar style={lsOrange!60, line width=0.4pt}},
-  % Konfidenzbereiche (68 % / 95 %) für echte Daten und Prognose
+  % confidence regions (68 % / 95 %) for real data and forecast
   slacs68/.style={fill=lsBlue, fill opacity=0.55, draw=lsBlue!70!black, line width=0.5pt},
   slacs95/.style={fill=lsBlue, fill opacity=0.20, draw=lsBlue!70!black, line width=0.5pt},
   forecast68/.style={fill=lsOrange, fill opacity=0.60, draw=lsOrange!70!black, line width=0.5pt},
@@ -67,7 +63,7 @@
   reference/.style={lsInk, line width=0.6pt},
 }
 
-% Vergleichsbänder (frühes vs. spätes Universum), für \fill innerhalb von Achsen
+% comparison bands (early vs. late universe), for \fill inside axes
 \tikzset{
   bandEarly/.style={fill=lsRed, fill opacity=0.15, draw=none},
   bandLate/.style={fill=lsGreen, fill opacity=0.15, draw=none},
