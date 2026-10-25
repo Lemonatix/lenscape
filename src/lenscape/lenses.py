@@ -1,14 +1,13 @@
-"""Massenmodelle für dünne Linsen.
+"""Thin-lens mass models.
 
-Alle Winkel sind in Bogensekunden. Jedes Modell liefert den *skalierten*
-Ablenkwinkel alpha(theta) = D_ds/D_s * alpha_hat, sodass die Linsengleichung
-einfach
+All angles are in arcseconds. Every model returns the *scaled* deflection
+angle alpha(theta) = D_ds/D_s * alpha_hat, so that the lens equation is simply
 
     beta = theta - alpha(theta)
 
-lautet. Die Konvergenz kappa = Sigma / Sigma_crit erfüllt div(alpha) = 2 kappa,
-und das Linsenpotential psi (arcsec^2) erfüllt grad(psi) = alpha. Aus psi folgt
-das Fermat-Potential und damit die Zeitverzögerung zwischen Bildern.
+The convergence kappa = Sigma / Sigma_crit satisfies div(alpha) = 2 kappa, and
+the lensing potential psi (arcsec^2) satisfies grad(psi) = alpha. psi gives the
+Fermat potential and hence the time delay between images.
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ _EPS = 1e-12
 
 
 def _rotate(x, y, phi):
-    """Drehe Koordinaten um -phi (ins Hauptachsensystem)."""
+    """Rotate coordinates by -phi (into the principal-axis frame)."""
     c, s = np.cos(phi), np.sin(phi)
     return c * x + s * y, -s * x + c * y
 
@@ -34,7 +33,7 @@ def _rotate_back(ax, ay, phi):
 
 
 class Lens:
-    """Basisklasse. Unterklassen implementieren ``deflection`` und ``convergence``."""
+    """Base class. Subclasses implement ``deflection`` and ``convergence``."""
 
     def deflection(self, x, y):
         raise NotImplementedError
@@ -43,14 +42,14 @@ class Lens:
         raise NotImplementedError
 
     def potential(self, x, y):
-        """Linsenpotential psi in arcsec^2 (bis auf eine Konstante)."""
-        raise NotImplementedError(f"{type(self).__name__} hat kein Potential implementiert")
+        """Lensing potential psi in arcsec^2 (up to a constant)."""
+        raise NotImplementedError(f"{type(self).__name__} does not implement a potential")
 
-    # --------------------------------------------------------- abgeleitete Größen
+    # --------------------------------------------------------- derived quantities
     def hessian(self, x, y, h: float = 1e-4):
-        """Jacobi-Matrix von alpha per zentralem Differenzenquotienten.
+        """Jacobian of alpha via central finite differences.
 
-        Rückgabe: (a_xx, a_xy, a_yx, a_yy)
+        Returns (a_xx, a_xy, a_yx, a_yy)
         """
         x = np.asarray(x, dtype=float)
         y = np.asarray(y, dtype=float)
@@ -65,7 +64,7 @@ class Lens:
         return a_xx, a_xy, a_yx, a_yy
 
     def jacobian_det(self, x, y):
-        """det A mit A = d beta / d theta = 1 - d alpha / d theta."""
+        """det A with A = d beta / d theta = 1 - d alpha / d theta."""
         a_xx, a_xy, a_yx, a_yy = self.hessian(x, y)
         return (1 - a_xx) * (1 - a_yy) - a_xy * a_yx
 
@@ -74,7 +73,7 @@ class Lens:
         return 1.0 / np.where(np.abs(det) < _EPS, np.sign(det) * _EPS + _EPS, det)
 
     def ray_shoot(self, x, y):
-        """Bildebene -> Quellebene (Linsengleichung)."""
+        """Image plane -> source plane (lens equation)."""
         ax, ay = self.deflection(x, y)
         return np.asarray(x) - ax, np.asarray(y) - ay
 
@@ -86,7 +85,7 @@ class Lens:
 
 @dataclass
 class CompositeLens(Lens):
-    """Überlagerung mehrerer Linsen in derselben Ebene."""
+    """Superposition of several lenses in the same plane."""
 
     components: list[Lens] = field(default_factory=list)
 
@@ -114,7 +113,7 @@ class CompositeLens(Lens):
 
 @dataclass
 class PointMass(Lens):
-    """Punktmasse (Stern, Schwarzes Loch): alpha = theta_E^2 / |theta|."""
+    """Point mass (star, black hole): alpha = theta_E^2 / |theta|."""
 
     theta_E: float
     x0: float = 0.0
@@ -142,7 +141,7 @@ class PointMass(Lens):
 
 @dataclass
 class SIS(Lens):
-    """Singuläre isotherme Sphäre: flache Rotationskurve, |alpha| = theta_E."""
+    """Singular isothermal sphere: flat rotation curve, |alpha| = theta_E."""
 
     theta_E: float
     x0: float = 0.0
@@ -172,11 +171,11 @@ class SIS(Lens):
 
 @dataclass
 class SIE(Lens):
-    """Singulärer isothermer Ellipsoid (Keeton 2001, mit optionalem Kernradius s).
+    """Singular isothermal ellipsoid (Keeton 2001, with optional core radius s).
 
-    q    Achsenverhältnis (0 < q <= 1), große Achse unter Winkel phi (rad).
-    theta_E ist im Zwischenachsen-Konvention definiert: für q -> 1 geht das
-    Modell in die SIS mit gleichem theta_E über.
+    q    axis ratio (0 < q <= 1), major axis at angle phi (rad).
+    theta_E uses the intermediate-axis convention: for q -> 1 the model
+    turns into the SIS with the same theta_E.
     """
 
     theta_E: float
@@ -197,7 +196,7 @@ class SIE(Lens):
         b, s = self._b(), self.s
         if q > 1 - 1e-6:
             r = np.sqrt(xr**2 + yr**2 + s**2) + _EPS
-            # für q=1 und s=0 ist das exakt die SIS
+            # for q=1 and s=0 this is exactly the SIS
             f = b * (r - s) / (r**2 - s**2 + _EPS)
             ax, ay = f * xr, f * yr
         else:
@@ -216,7 +215,7 @@ class SIE(Lens):
         return self._b() / (2 * np.sqrt(q**2 * (self.s**2 + xr**2) + yr**2) + _EPS)
 
     def potential(self, x, y):
-        """Keeton (2001): psi = x alpha_x + y alpha_y - b s ln[...] (im Hauptachsensystem)."""
+        """Keeton (2001): psi = x alpha_x + y alpha_y - b s ln[...] (in the principal-axis frame)."""
         q = min(max(self.q, 1e-3), 1.0)
         dx = np.asarray(x, dtype=float) - self.x0
         dy = np.asarray(y, dtype=float) - self.y0
@@ -235,7 +234,7 @@ class SIE(Lens):
 
 @dataclass
 class ExternalShear(Lens):
-    """Konstante externe Scherung (Gezeitenfeld der Umgebung)."""
+    """Constant external shear (tidal field of the environment)."""
 
     gamma1: float = 0.0
     gamma2: float = 0.0
@@ -259,7 +258,7 @@ class ExternalShear(Lens):
 
 
 def _nfw_F(x):
-    """Hilfsfunktion F(x) der projizierten NFW-Dichte."""
+    """Auxiliary function F(x) of the projected NFW density."""
     x = np.asarray(x, dtype=float)
     out = np.ones_like(x)
     lo = x < 1 - 1e-6
@@ -270,7 +269,7 @@ def _nfw_F(x):
 
 
 def _nfw_h(x):
-    """h(x) = ln(x/2) + Integralterm; projizierte Masse in Zylinder ~ h(x)."""
+    """h(x) = ln(x/2) + integral term; projected mass in a cylinder ~ h(x)."""
     x = np.asarray(x, dtype=float)
     out = np.full_like(x, 1.0 + np.log(0.5))
     lo = x < 1 - 1e-6
@@ -283,10 +282,10 @@ def _nfw_h(x):
 
 @dataclass
 class NFW(Lens):
-    """Navarro-Frenk-White-Halo -- das Standardprofil Dunkler-Materie-Halos.
+    """Navarro-Frenk-White halo -- the standard profile of dark-matter haloes.
 
-    kappa_s  = rho_s r_s / Sigma_crit (dimensionslos)
-    theta_s  = Skalenradius in arcsec
+    kappa_s  = rho_s r_s / Sigma_crit (dimensionless)
+    theta_s  = scale radius in arcsec
     """
 
     kappa_s: float
@@ -296,7 +295,7 @@ class NFW(Lens):
 
     @classmethod
     def from_m200(cls, geom: LensGeometry, m200_msun: float, concentration: float, **kw) -> "NFW":
-        """Halo aus M200 (Masse innerhalb r200, mittlere Dichte 200 rho_crit(z_d)) und c."""
+        """Halo from M200 (mass inside r200, mean density 200 rho_crit(z_d)) and c."""
         from astropy import units as u
 
         rho_c = geom.cosmo.critical_density(geom.z_d).to(u.M_sun / u.kpc**3).value
@@ -337,10 +336,10 @@ class NFW(Lens):
 
 
 def einstein_radius(lens: Lens, r_max: float = 1e3) -> float:
-    """Einsteinradius einer (näherungsweise) kreissymmetrischen Linse.
+    """Einstein radius of an (approximately) circularly symmetric lens.
 
-    Löst |alpha(theta)| = theta entlang der x-Achse, d.h. mittlere Konvergenz
-    innerhalb theta gleich 1. Gibt NaN zurück, wenn die Linse subkritisch ist.
+    Solves |alpha(theta)| = theta along the x axis, i.e. mean convergence
+    inside theta equal to 1. Returns NaN if the lens is subcritical.
     """
     from scipy.optimize import brentq
 
