@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Baut alle TikZ/pgfplots-Abbildungen unter figures/<thema>/*.tex.
+"""Build all TikZ/pgfplots figures under figures/<topic>/*.tex.
 
-    python figures/build.py              # alle
-    python figures/build.py slacs/f_dm   # eine
+    python figures/build.py              # all
+    python figures/build.py slacs/f_dm   # one
 
-Erzeugt neben jeder .tex-Datei eine .pdf (für Arbeiten/LaTeX) und, falls
-pdftocairo vorhanden ist (poppler), eine .svg (für README und Website).
-Hilfsdateien landen in figures/<thema>/build/ (nicht versioniert).
+Next to each .tex file this creates a .pdf (for papers/LaTeX) and, if
+pdftocairo (poppler) is available, an .svg (for the README and website).
+Auxiliary files go to figures/<topic>/build/ (not version-controlled).
 """
 
 from __future__ import annotations
@@ -29,23 +29,23 @@ def targets(args: list[str]) -> list[Path]:
 def build(tex: Path) -> bool:
     folder = tex.parent
     if "{data/" in tex.read_text(encoding="utf-8") and not (folder / "data").exists():
-        print(f"--  {tex.relative_to(ROOT)}  übersprungen (keine Daten; erst die Auswertung laufen lassen)")
+        print(f"--  {tex.relative_to(ROOT)}  skipped (no data; run the analysis first)")
         return True
-    # alte Hilfsdateien dieser Abbildung entfernen (abgebrochene Läufe verwirren latexmk sonst)
+    # remove old auxiliary files of this figure (aborted runs confuse latexmk otherwise)
     for old in (folder / "build").glob(tex.stem + ".*"):
         old.unlink()
     cmd = ["latexmk", "-pdf", "-interaction=nonstopmode", "-halt-on-error", "-outdir=build", tex.name]
     if not shutil.which("latexmk"):
         cmd = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", "-output-directory=build", tex.name]
         (folder / "build").mkdir(exist_ok=True)
-    # Reproduzierbare PDFs: feste Zeitstempel/IDs, damit Git nur echte Änderungen sieht
+    # reproducible PDFs: fixed timestamps/IDs so that git only sees real changes
     env = os.environ | {"SOURCE_DATE_EPOCH": "0", "FORCE_SOURCE_DATE": "1"}
     r = subprocess.run(cmd, cwd=folder, capture_output=True, text=True, env=env)
     pdf = folder / "build" / tex.with_suffix(".pdf").name
     if r.returncode != 0 or not pdf.exists():
         log = folder / "build" / tex.with_suffix(".log").name
         tail = log.read_text(errors="replace").splitlines()[-25:] if log.exists() else r.stdout.splitlines()[-25:]
-        print(f"FEHLER {tex.relative_to(ROOT)}\n  " + "\n  ".join(tail))
+        print(f"ERROR {tex.relative_to(ROOT)}\n  " + "\n  ".join(tail))
         return False
     shutil.copy(pdf, tex.with_suffix(".pdf"))
     msg = "pdf"
