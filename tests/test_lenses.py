@@ -29,7 +29,7 @@ def test_poisson_equation(lens):
 
 @pytest.mark.parametrize("lens", MODELS, ids=lambda m: type(m).__name__)
 def test_deflection_is_curl_free(lens):
-    """alpha ist ein Gradientenfeld -> symmetrische Jacobi-Matrix."""
+    """alpha is a gradient field -> symmetric Jacobian."""
     _, axy, ayx, _ = lens.hessian(X, Y, h=1e-5)
     np.testing.assert_allclose(axy[MASK], ayx[MASK], atol=1e-6)
 
@@ -73,7 +73,7 @@ def test_einstein_radius_numeric():
 
     assert einstein_radius(SIS(1.4)) == pytest.approx(1.4, rel=1e-8)
     assert einstein_radius(PointMass(0.8)) == pytest.approx(0.8, rel=1e-8)
-    # Kern mit zentraler Konvergenz < 1 -> kein Einsteinring
+    # core with central convergence < 1 -> no Einstein ring
     assert np.isnan(einstein_radius(SIE(1.0, q=1.0, s=1.0)))
-    # NFW: kappa divergiert logarithmisch im Zentrum -> immer ein (evtl. winziger) Einsteinradius
+    # NFW: kappa diverges logarithmically at the centre -> always a (possibly tiny) Einstein radius
     assert 0 < einstein_radius(NFW(0.01, 5.0)) < 1e-3
