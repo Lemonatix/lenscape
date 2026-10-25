@@ -13,15 +13,15 @@
       xmin=58, xmax=92,
       xtick distance=5,
       xlabel={$H_0$ \quad [km\,s$^{-1}$\,Mpc$^{-1}$]},
-      title={Die Hubble-Spannung: Linsen, Sternenleiter und CMB},
+      title={The Hubble tension: lenses, distance ladder and CMB},
       y tick label style={font=\small},
       clip=false,
       title style={yshift=12pt},
     ]
-    % Bänder: frühes Universum (Planck) und lokale Entfernungsleiter (SH0ES)
+    % bands: early universe (Planck) and local distance ladder (SH0ES)
     \fill[bandEarly] (axis cs:{\planckmed-\planckerr},0.4) rectangle (axis cs:{\planckmed+\planckerr},10.6);
     \fill[bandLate]  (axis cs:{\shoesmed-\shoeserr},0.4) rectangle (axis cs:{\shoesmed+\shoeserr},10.6);
-    % Trennlinie zwischen Einzellinsen und Zusammenfassungen
+    % separator between individual lenses and combinations
     \draw[lsGrey!60, densely dotted] (axis cs:58,4.5) -- (axis cs:92,4.5);
 
     \addplot[only marks, mark=*, mark size=1.8pt, lsBlue,
@@ -40,14 +40,14 @@
              error bars/.cd, x dir=both, x explicit, error bar style={lsRed, line width=0.8pt}]
       table[x=x, y=y, x error minus=em, x error plus=ep] {data/whisker_early.dat};
 
-    % Werte rechts neben den Kombinationen
+    % values to the right of the combinations
     \node[font=\scriptsize, text=lsInk, anchor=west] at (axis cs:{\hzeromed+\hzerohi+0.8},4)
       {$\pgfmathprintnumber[fixed,precision=1,fixed zerofill]{\hzeromed}^{+\pgfmathprintnumber[fixed,precision=1,fixed zerofill]{\hzerohi}}_{-\pgfmathprintnumber[fixed,precision=1,fixed zerofill]{\hzerolo}}$
-       \;(diese Rechnung)};
+       \;(this work)};
     \node[font=\scriptsize, text=lsGrey, anchor=north east, align=right] at (rel axis cs:0.99,0.99)
-      {Abstand zu Planck: $\pgfmathprintnumber[fixed,precision=1]{\tensionplanck}\,\sigma$};
-    \node[font=\scriptsize, text=lsRed!80!black, anchor=south east] at (axis cs:{\planckmed+\planckerr},10.6) {frühes Universum};
-    \node[font=\scriptsize, text=lsGreen!70!black, anchor=south west] at (axis cs:{\shoesmed-\shoeserr},10.6) {spätes Universum};
+      {Tension with Planck: $\pgfmathprintnumber[fixed,precision=1]{\tensionplanck}\,\sigma$};
+    \node[font=\scriptsize, text=lsRed!80!black, anchor=south east] at (axis cs:{\planckmed+\planckerr},10.6) {early universe};
+    \node[font=\scriptsize, text=lsGreen!70!black, anchor=south west] at (axis cs:{\shoesmed-\shoeserr},10.6) {late universe};
   \end{axis}
 \end{tikzpicture}
 \end{document}
